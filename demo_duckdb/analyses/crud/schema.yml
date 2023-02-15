@@ -1,0 +1,89 @@
+version: 2
+
+analyses:
+  - name: _list_customers
+    description: List customers
+    config:
+      jinjat:
+        method: get
+        response_body: ref("customers")
+        openapi:
+          responses:
+            200:
+              description: OK
+              content:
+                application/json:
+                  schema:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/{{'model.' ~ project_name ~ '.customers'}}"
+          parameters:
+            - in: query
+              name: sort
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    asc: 
+                      type: boolean
+                    field: 
+                      type: string
+            - in: query
+              name: select
+              schema:
+                type: array
+                items:
+                  type: string
+            - in: query
+              name: filter
+              schema:
+                $ref: "#/components/schemas/filter"
+  - name: _create_customers
+    description: Create customers
+    config:
+      jinjat:
+        method: post
+        fetch: false
+        request_body: ref("customers")
+        openapi:
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/{{'model.' ~ project_name ~ '.customers'}}"
+  - name: _get_customer
+    description: Get customers
+    config:
+      jinjat:
+        method: get
+        transform:
+          response:
+            - jsonpath: $[0]
+        response_body: ref("customers")
+        openapi:
+          responses:
+            200:
+              description: OK
+              content:
+                application/json:
+                  $ref: "#/components/schemas/{{'model.' ~ project_name ~ '.customers'}}"
+  - name: _delete_customers
+    description: Delete customers
+    config:
+      jinjat:
+        method: delete
+        fetch: false
+  - name: _patch_customers
+    description: Patch customers
+    config:
+      jinjat:
+        method: patch
+        fetch: false
+        request_body: ref("customers")
+        openapi:
+          requestBody:
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/{{'model.' ~ project_name ~ '.customers'}}"

@@ -11,6 +11,6 @@ RUN poetry install --with test --extras postgres
 # Copy everything. (Note: If needed, we can use .dockerignore to limit what's copied.)
 COPY . .
 
-# Install again, now that we've copied the dbt-osmosis package files. Otherwise,
-# dbt-osmosis itself won't be installed.
+# Install again, now that we've copied the jinjat package files. Otherwise,
+# Jinjat itself won't be installed.
 RUN poetry install --with test --extras postgres

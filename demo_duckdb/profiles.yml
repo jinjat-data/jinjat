@@ -1,9 +1,14 @@
 jaffle_shop:
-  target: dev
+  target: test
   outputs:
     dev:
       type: duckdb
       path: "demo_duckdb/jaffle_shop.duckdb"
+      settings:
+        access_mode: READ_ONLY
     test:
       type: duckdb
-      path: "jaffle_shop.duckdb"
+      path: "/Users/bkabak/Code/jinjat/jinjat/demo_duckdb/jaffle_shop.duckdb"
+#      settings:
+#        access_mode: READ_ONLY
+  

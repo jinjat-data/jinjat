@@ -1,6 +1,6 @@
 # Jinjat
 
-## Develop data applications with dbt, SQL, and OpenAPI
+## Create REST APIs from your dbt project
 
 ### Installation
 
@@ -55,16 +55,11 @@ It should return the following response:
 ]
 ```
 
-Jinjat uses OpenAPI to validate the requests and create an API documentation automatically for your API.
+Jinjat uses OpenAPI to validate the request body & response and create API documentation automatically for your API.
 
 ## Integrations
 
-poetry install --extras "duckdb"
-
 ### Playground
-
-poetry install --extras "playground"
-
 
 #### Installation
 
@@ -75,7 +70,7 @@ pip install jinjat[playground]
 Jinjat Playground is a Streamlit app that lets you develop APIs in your browser.
 Once you write the template, you can save it to your dbt project as an analysis and expose the API.
 
-### [Refine](https://refine.dev)
+### [Refine](https://refine.dev) (User Interface)
 
 #### Installation
 
@@ -83,4 +78,8 @@ Once you write the template, you can save it to your dbt project as an analysis 
 pip install jinjat[refine]
 ```
 
-Jinjat Refine integration creates a Refine app from your OpenAPI spec 
+Jinjat Refine integration creates a Refine app from your OpenAPI spec. You can customize the app either via the OpenAPI spec in your dbt project or Typescript depending on your choice.
+
+## TODO:
+[] Hot reload
+[] dbt-metrics Integration

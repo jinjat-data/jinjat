@@ -1,0 +1,10 @@
+# STREAMLIT DEMO APP DEPENDENCIES
+
+# The only version that works currently
+duckcli==0.0.1
+
+# Database adapter
+dbt-duckdb>=1.1.2,<1.2.0
+
+# Jinjat
+git+https://github.com/buremba/jinjat#egg=jinjat[playground]

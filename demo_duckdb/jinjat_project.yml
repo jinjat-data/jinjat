@@ -1,0 +1,97 @@
+refine:
+  package:
+    name: 'test'
+    dependencies:
+      "@mui/material": "^5.11.4"
+  jsonforms:
+    renderers:
+      rating:
+        import: "@mui/material/Rating"
+
+openapi:
+  security:
+    - ApiKeyAuth: []
+    - OAuth2:
+        - scope1
+        - scope2
+  info:
+    description: jinjat example project
+    contact:
+      name: buremba
+      email: emrekabakci@gmail.com
+    license:
+      name: Apache 2.0
+      url: https://www.apache.org/licenses/LICENSE-2.0.html
+  components:
+    securitySchemes:
+      BasicAuth:
+        type: http
+        scheme: basic
+      BearerAuth:
+        type: http
+        scheme: bearer
+      ApiKeyAuth:
+        type: apiKey
+        in: header
+        name: X-API-Key
+      OpenID:
+        type: openIdConnect
+        openIdConnectUrl: https://example.com/.well-known/openid-configuration
+      OAuth2:
+        type: oauth2
+        flows:
+          authorizationCode:
+            authorizationUrl: https://example.com/oauth/authorize
+            tokenUrl: https://example.com/oauth/token
+            scopes:
+              read: Grants read access
+              write: Grants write access
+              admin: Grants access to admin operations
+    schemas:
+      filter:
+        examples:
+          - and:
+              - field: gender
+                operator: equals
+                value: female
+              - or:
+                  - field: age
+                    operator: is_set
+                  - dimension: country
+                    operator: equals
+                    value: UK
+        properties:
+          and:
+            "$ref": "#/components/schemas/filterList"
+          or:
+            "$ref": "#/components/schemas/filterList"
+        oneOf:
+          - required:
+              - and
+          - required:
+              - or
+      filterList:
+        type: array
+        items:
+          oneOf:
+            - "$ref": "#/components/schemas/filter"
+            - "$ref": "#/components/schemas/filterExpression"
+      filterExpression:
+        type: object
+        description:
+          The filter for the dataset. See [filter reference](https://metriql.com/query/introduction#filter)
+          for details.
+        additionalProperties: false
+        examples:
+          - field: total_transactions
+            operator: greater_than
+            value: 1000
+        properties:
+          field:
+            type: string
+          operator:
+            type: string
+          value: {}
+        required:
+          - field
+          - operator

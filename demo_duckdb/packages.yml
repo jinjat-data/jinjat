@@ -1,0 +1,4 @@
+packages:
+#  - package: brooklyn-data/dbt_artifacts
+#    version: 2.2.2
+  - local: /Users/bkabak/Code/jinjat/jinjat_metadata_api

@@ -8,7 +8,7 @@ profile: "jaffle_shop"
 model-paths: ["models"]
 seed-paths: ["seeds"]
 test-paths: ["tests"]
-analysis-paths: ["analysis"]
+analysis-paths: ["analyses"]
 macro-paths: ["macros"]
 
 target-path: "target"
@@ -20,7 +20,12 @@ clean-targets:
 require-dbt-version: [">=1.0.0", "<2.0.0"]
 
 models:
-  jaffle_shop:
-    materialized: table
-    staging:
-      materialized: view
+  jaffle_shop_duckdb:
+    +jinjat:
+      cors: true
+
+on-run-end:
+  - "{{jinjat_metadata_api.upload_results(results) }}"
+
+vars:
+  start_date: '2016-06-01'

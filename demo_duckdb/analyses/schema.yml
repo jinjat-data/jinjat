@@ -1,0 +1,85 @@
+version: 2
+
+exposures:
+  - name: example_endpoint
+    type: analysis
+    meta:
+      jinjat:
+        refine:
+          button_label: Perform action
+          menu_icon: AutoAwesome
+    description: >
+      Did someone say "exponential growth"?
+    owner:
+      name: Burak
+      email: burak@email.com
+  - name: example_crud
+    type: application
+    owner:
+      name: Burak
+      email: burak@email.com
+    meta:
+      jinjat:
+        refine:
+          menu_icon: AutoAwesome
+        crud:
+          create: _create_customers
+          list: _list_customers
+          delete: _create_customers
+          get: _get_customer
+          patch: _patch_customers
+  - name: example_dashboard
+    type: dashboard
+    owner:
+      name: Burak
+      email: burak@email.com
+    meta:
+      jinjat:
+        refine:
+          menu_icon: AutoAwesome
+        items:
+          - width: 1
+            height: 1
+            left: 2
+            top: 2
+            data:
+              analysis: example_endpoint
+              body:
+              query_params:
+            chart:
+              echarts_config
+
+analyses:
+  - name: example_endpoint
+    description: Example endpoint to demonstrate Jinjat
+    config:
+      jinjat:
+        method: get
+        openapi:
+#          responses:
+#            200:
+#              description: OK
+#              content:
+#                application/json:
+#                  schema:
+#                    type: array
+#                    items:
+#                      type: object
+#                      properties:
+#                        test:
+#                          type: integer
+          parameters:
+            - in: query
+              name: number
+              schema:
+                type: number
+                default: 1
+#          requestBody:
+#            content:
+#              application/json:
+#                schema:
+#                  type: object
+#                  properties:
+#                    number:
+#                      type: number
+#                      default: 1
