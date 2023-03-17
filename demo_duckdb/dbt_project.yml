@@ -24,8 +24,5 @@ models:
     +jinjat:
       cors: true
 
-on-run-end:
-  - "{{jinjat_metadata_api.upload_results(results) }}"
-
 vars:
   start_date: '2016-06-01'

@@ -74,7 +74,7 @@ openapi:
         type: array
         items:
           oneOf:
-            - "$ref": "#/components/schemas/filter"
+#            - "$ref": "#/components/schemas/filter"
             - "$ref": "#/components/schemas/filterExpression"
       filterExpression:
         type: object

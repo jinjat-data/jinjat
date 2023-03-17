@@ -1,8 +1,9 @@
 import asyncio
+import json
 from datetime import datetime
 from typing import Optional, Union
 
-from fastapi import Header, APIRouter
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 from starlette import status
 from starlette.background import BackgroundTasks
@@ -12,8 +13,9 @@ from starlette.responses import Response
 from jinjat.core.dbt.dbt_project import DbtProjectContainer, DbtProject
 from jinjat.core.exceptions import ExecuteSqlFailure
 from jinjat.core.models import JinjatExecutionResult, DbtAdapterExecutionResult, generate_dbt_context_from_request, \
-    DbtQueryRequestContext
-from jinjat.core.util import JinjatErrorContainer, JinjatError, JinjatErrorCode
+    DbtQueryRequestContext, JSON_COLUMNS_QUERY_PARAM
+from jinjat.core.util.api import JinjatErrorContainer, JinjatError, JinjatErrorCode, DBT_PROJECT_HEADER
+from jinjat.core.util.jmespath import extract_jmespath
 
 router = APIRouter()
 
@@ -38,24 +40,27 @@ class DbtAdhocQueryRequest(BaseModel):
     limit: Optional[int]
 
 
-@router.post(
-    "/embedded/execute",
-    response_model=JinjatExecutionResult
+@router.get(
+    "/manifest.json"
 )
-async def embedded_execute_sql(
+async def execute_manifest_query(
         request: Request,
-        body: DbtAdhocQueryRequest,
+        response: Response,
+        jmespath: Optional[str] = None,
         # x_dbt_project: Optional[str] = Header(default=None),
-) -> JinjatExecutionResult:
+) -> any:
     """Execute dbt SQL against a registered project as determined by X-dbt-Project header"""
-    dbt: DbtProjectContainer = request.app.state.dbt_project_container
-    project = dbt.get_project(None)
+    dbt_container: DbtProjectContainer = request.app.state.dbt_project_container
+    project = dbt_container.get_project(None)
 
     if project is None:
         raise jinjat_project_not_found_error()
 
-    dbt_result = await _execute_jinjat_query(project, duckdb_execute, body.sql, body.request, body.limit)
-    return JinjatExecutionResult.from_dbt(body.request, dbt_result)
+    manifest_file = project.dbt.writable_manifest().to_dict()
+    result = extract_jmespath([jmespath], manifest_file)
+    response.headers[DBT_PROJECT_HEADER] = project.config.version
+    result
+    return result
 
 
 @router.post(
@@ -75,7 +80,9 @@ async def execute_sql(
         raise jinjat_project_not_found_error()
 
     dbt_result = await _execute_jinjat_query(project, project.execute_sql, body.sql, body.request, body.limit)
-    return JinjatExecutionResult.from_dbt(body.request, dbt_result)
+    json_cols = json.loads(request.query_params.get(JSON_COLUMNS_QUERY_PARAM) or '[]')
+
+    return JinjatExecutionResult.from_dbt(body.request, dbt_result, json_columns=json_cols)
 
 
 async def _execute_jinjat_query(project: DbtProject, execute_function, query: str, ctx: DbtQueryRequestContext,
@@ -241,7 +248,7 @@ async def health_check(
                 if project is not None
                 else {}
             ),
-            "timestamp": datetime.datetime.utcnow(),
+            "timestamp": datetime.utcnow(),
             "error": None,
         },
         "jinjat": __name__,

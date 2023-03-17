@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import Optional, Any, List
+from typing import Any, List
 
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, ValidationError
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, Response, JSONResponse
-from watchdog.events import LoggingEventHandler, PatternMatchingEventHandler
-from watchdog.observers import Observer
 
+
+DBT_PROJECT_HEADER = 'x-dbt-project-version'
 
 def get_human_readable_error(validation_error: ValidationError) -> str:
     error_str = "Validation errors:\n"
@@ -26,6 +26,7 @@ class JinjatErrorCode(int, Enum):
     ProjectNotFound = 4
     ProjectHeaderNotSupplied = 5
     SqlNotSupplied = 6
+    JmesPathParseError = 7
 
 
 class JinjatError(BaseModel):
@@ -38,40 +39,10 @@ class JinjatErrorContainer(HTTPException):
         super().__init__(status_code, error.dict())
 
 
-class DbtTarget(BaseModel):
-    project_dir: str
-    profiles_dir: str
-    target: Optional[str]
-
-
-class DbtExecutionError(BaseModel):
-    raw_sql: str
-    compiled_sql: Optional[str]
-    error: str
-
-
-def watch(directory: str, callback):
-    class DbtProjectWatcher(LoggingEventHandler,
-                            PatternMatchingEventHandler(patterns=['analysis/*.sql',
-                                                                  'analysis/*.yml',
-                                                                  'macros/*.sql',
-                                                                  'models/*.sql',
-                                                                  'dbt_project.yml'])):
-
-        def on_any_event(self, event):
-            super().on_any_event(event)
-            callback(directory)
-
-    observer = Observer()
-    observer.schedule(DbtProjectWatcher, directory, recursive=True)
-    observer.start()
-
-
 @dataclass
 class CustomButton:
     name: str
     url: str
-
 
 async def rapidoc_html(custom_button: CustomButton, request: Request) -> HTMLResponse:
     html = f"""
@@ -89,6 +60,7 @@ async def rapidoc_html(custom_button: CustomButton, request: Request) -> HTMLRes
                           primary-color="#DCBB0E" render-style="focused" 
                           show-method-in-nav-bar="as-colored-block" 
                           show-header="false" 
+                          show-components="true"
                           show-curl-before-try="true">
                     <div slot="overview">
                         <a href="openapi.json" style="color:#DCBB0E">openapi.json</a><br>
@@ -100,6 +72,33 @@ async def rapidoc_html(custom_button: CustomButton, request: Request) -> HTMLRes
                 </rapi-doc>
             </body> 
         </html>
+    """
+    return HTMLResponse(html)
+
+async def elements_html(custom_button: CustomButton, request: Request) -> HTMLResponse:
+    html = f"""
+        <!doctype html>
+        <html lang="en">
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+            <title>Elements in HTML</title>
+          
+            <script src="https://unpkg.com/@stoplight/elements/web-components.min.js"></script>
+            <link rel="stylesheet" href="https://unpkg.com/@stoplight/elements/styles.min.css">
+          </head>
+          <body>
+        
+            <elements-api
+              apiDescriptionUrl="openapi.json"
+              layout="sidebar"
+              logo="https://jinjat.com/img/jinjat-logo.svg"
+              router="history"
+            />
+        
+          </body>
+        </html>
+
     """
     return HTMLResponse(html)
 
@@ -161,6 +160,9 @@ def register_jsonapi_exception_handlers(app: Starlette):
         Serializes exception according to the json:api spec
         and returns the equivalent :class:`JSONAPIResponse`.
         """
+        if isinstance(exc, JinjatErrorContainer):
+            status_code = exc.status_code
+            errors = [exc.detail]
         if isinstance(exc, JSONAPIException):
             status_code = exc.status_code
             errors = exc.errors
@@ -181,3 +183,5 @@ def register_jsonapi_exception_handlers(app: Starlette):
 
     app.add_exception_handler(Exception, _serialize_error)
     app.add_exception_handler(HTTPException, _serialize_error)
+
+

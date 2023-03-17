@@ -1,0 +1,20 @@
+ {
+ 	"openapi": "3.0.2",
+ 	"components": {
+ 		"schemas": {
+ 			"filter": {
+ 				"properties": {
+ 					"and": {
+ 						"$ref": "#/components/schemas/filterList"
+ 					}
+ 				}
+ 			},
+ 			"filterList": {
+ 				"type": "array",
+ 				"items": {
+ 					"$ref": "#/components/schemas/filter"
+ 				}
+ 			}
+ 		}
+ 	}
+ }

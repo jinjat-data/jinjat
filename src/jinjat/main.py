@@ -82,7 +82,7 @@ def run_server(host="localhost", port=8581):
 @cli.command(context_settings=CONTEXT)
 @shared_single_project_opts
 @shared_server_opts
-def generate(
+def generate_crud(
         project_dir: str,
         profiles_dir: str,
         target: Optional[str],
@@ -127,7 +127,7 @@ def serve(
 @shared_single_project_opts
 @shared_server_opts
 @click.pass_context
-def playground(
+def streamlit(
         ctx,
         project_dir: str,
         profiles_dir: str,

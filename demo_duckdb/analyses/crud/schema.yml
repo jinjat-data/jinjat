@@ -6,7 +6,6 @@ analyses:
     config:
       jinjat:
         method: get
-        response_body: ref("customers")
         openapi:
           responses:
             200:
@@ -45,7 +44,6 @@ analyses:
       jinjat:
         method: post
         fetch: false
-        request_body: ref("customers")
         openapi:
           requestBody:
             content:
@@ -59,8 +57,7 @@ analyses:
         method: get
         transform:
           response:
-            - jsonpath: $[0]
-        response_body: ref("customers")
+            - jmespath: $[0]
         openapi:
           responses:
             200:

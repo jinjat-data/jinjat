@@ -11,6 +11,6 @@ WHERE
     {{ get_jinjat_config(
         'ref',
         'customers'
-    ).crud.primary_key }} = {{ quote_literal_value(
+    ).schema['x-pk'] }} = {{ quote_literal_value(
         request.params.id
     ) }}

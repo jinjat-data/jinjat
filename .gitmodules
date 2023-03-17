@@ -1,0 +1,4 @@
+[submodule "jinjat-refine"]
+    path = src/refine
+    url = https://github.com/jinjat-data/jinjat-refine
+    branch = dist

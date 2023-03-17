@@ -1,8 +1,9 @@
+import functools
+import json
 import typing
 from collections import OrderedDict
 from typing import (
     Any,
-    Dict,
     List,
     Optional,
     Mapping,
@@ -17,6 +18,9 @@ from pydantic import BaseModel, validator
 from starlette.requests import Request
 
 from openapi_schema_pydantic import OpenAPI
+
+LIMIT_QUERY_PARAM = '_limit'
+JSON_COLUMNS_QUERY_PARAM = '_json_columns'
 
 
 class JinjatProjectConfig(BaseModel):
@@ -52,13 +56,15 @@ class Transform(BaseModel):
     jmespath: str
 
 
-class JinjatConfig(BaseModel):
+class JinjatAnalysisConfig(BaseModel):
     cors: Optional[bool]
     openapi: Optional[Operation] = Operation()
     method: Optional[str]
     body: Optional[dict]
     headers: Optional[dict]
     fetch: Optional[bool] = True
+    request_model : Optional[str]
+
     transform_response: Optional[List[Transform]]
     transform_request: Optional[List[Transform]]
 
@@ -86,11 +92,10 @@ class DbtAdapterExecutionResult:
         self.raw_sql = raw_sql
         self.compiled_sql = compiled_sql
 
-
-def _convert_table_to_dict(table: agate.Table):
+def _convert_table_to_dict(table: agate.Table, json_columns: List[str]):
     output = []
-    json_funcs = [c.jsonify for c in table.column_types]
-
+    json_funcs = [(lambda x: json.loads(col.jsonify(x))) if table.column_names[i] in json_columns else col.jsonify
+                  for i, col in enumerate(table.column_types)]
     for row in table.rows:
         values = tuple(json_funcs[i](d) for i, d in enumerate(row))
         output.append(OrderedDict(zip(row.keys(), values)))
@@ -119,13 +124,14 @@ class JinjatExecutionResult(BaseModel):
 
     @staticmethod
     def from_dbt(ctx: DbtQueryRequestContext, result: DbtAdapterExecutionResult,
-                 transform_response: typing.Callable[[dict], dict] = None) -> 'JinjatExecutionResult':
+                 transform_response: typing.Callable[[dict], dict] = None,
+                 json_columns: List[str] = []) -> 'JinjatExecutionResult':
         columns = [JinjatColumn(name=column.name, type=column.data_type.__class__.__name__) for column in
                    result.table.columns]
         adapter_response = JinjatAdapterResponse(message=result.adapter_response._message,
                                                  code=result.adapter_response.code,
                                                  rows_affected=result.adapter_response.rows_affected)
-        result_dict = _convert_table_to_dict(result.table)
+        result_dict = _convert_table_to_dict(result.table, json_columns)
         if transform_response is not None:
             result_dict = transform_response(result_dict)
         return JinjatExecutionResult(request=ctx, adapter_response=adapter_response, columns=columns,

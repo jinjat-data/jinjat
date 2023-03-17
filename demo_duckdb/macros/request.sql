@@ -1,4 +1,3 @@
-
 {% macro request(req) %}
     {% if execute %}
         {% set analyses_ref_node = graph.nodes.values() | selectattr('name', 'equalto', this.identifier) | first %}

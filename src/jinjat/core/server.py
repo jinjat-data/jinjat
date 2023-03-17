@@ -6,6 +6,7 @@ import yaml
 from deepmerge import always_merger
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
+from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Mount
 
 from jinjat.core.dbt.dbt_project import DbtProjectContainer, DbtProject
@@ -13,11 +14,27 @@ from jinjat.core.log_controller import logger
 from jinjat.core.models import JinjatProjectConfig
 from jinjat.core.routes.analysis import create_analysis_apps
 from jinjat.core.routes.project import router as project_router
-from jinjat.core.util import DbtTarget, register_jsonapi_exception_handlers, rapidoc_html, CustomButton
+from jinjat.core.util.api import register_jsonapi_exception_handlers, rapidoc_html, CustomButton, DBT_PROJECT_HEADER
+from jinjat.core.util.dbt import DbtTarget
 
 SERVER_OPT = "SERVER_OPT"
 
-app = FastAPI()
+app = FastAPI(redoc_url=None, docs_url=None)
+
+origins = [
+    "http://localhost:3000",
+    "https://jinjat-refine.pages.dev"
+]
+
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=False,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=[DBT_PROJECT_HEADER]
+)
 
 app.state.dbt_project_container = DbtProjectContainer()
 
@@ -55,7 +72,7 @@ if SERVER_OPT in os.environ:
         if app.openapi_schema:
             return app.openapi_schema
 
-        openapi_schema = get_openapi(title=project.project_name, version=project.config.version, routes=app.routes, )
+        openapi_schema = get_openapi(title=project.project_name, version=project.config.version, routes=app.routes)
         app.openapi_schema = openapi_schema
         always_merger.merge(app.openapi_schema.get('info'), config.openapi.get("info", {}))
         return app.openapi_schema

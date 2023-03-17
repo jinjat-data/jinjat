@@ -1,6 +1,22 @@
 version: 2
 
 exposures:
+  - name: crud
+    type: application
+    owner:
+      name: Burak
+      email: burak@email.com
+    meta:
+      jinjat:
+        refine:
+          menu_icon: AutoAwesome
+          actions:
+            delete: _delete_customers
+          resources:
+            create: _create_customers
+            list: _list_customers
+            show: _get_customer
+            edit: _patch_customers
   - name: example_endpoint
     type: analysis
     meta:
@@ -13,21 +29,6 @@ exposures:
     owner:
       name: Burak
       email: burak@email.com
-  - name: example_crud
-    type: application
-    owner:
-      name: Burak
-      email: burak@email.com
-    meta:
-      jinjat:
-        refine:
-          menu_icon: AutoAwesome
-        crud:
-          create: _create_customers
-          list: _list_customers
-          delete: _create_customers
-          get: _get_customer
-          patch: _patch_customers
   - name: example_dashboard
     type: dashboard
     owner:
@@ -37,6 +38,9 @@ exposures:
       jinjat:
         refine:
           menu_icon: AutoAwesome
+        parameters:
+          country:
+            $ref: "#/components/schemas/{{'model.' ~ project_name ~ '.customers'}}"
         items:
           - width: 1
             height: 1

@@ -1,2 +1,5 @@
 logs
 target
+dbt_packages
+jaffle_shop.duckdb
+jaffle_shop.duckdb.wal

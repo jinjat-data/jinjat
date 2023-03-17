@@ -1,9 +1,12 @@
 from typing import Optional
 
 from dbt.exceptions import RuntimeException
+from pydantic import BaseModel
 
-from jinjat.core.util import DbtExecutionError
-
+class DbtExecutionError(BaseModel):
+    raw_sql: str
+    compiled_sql: Optional[str]
+    error: str
 
 class InvalidJinjaConfig(SystemExit):
 
