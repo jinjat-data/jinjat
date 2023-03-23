@@ -1,4 +1,4 @@
 [submodule "jinjat-refine"]
-	path = jinjat-refine
+	path = src/jinjat/jinjat-refine
 	url = https://github.com/jinjat-data/jinjat-refine
     branch = gh-pages
