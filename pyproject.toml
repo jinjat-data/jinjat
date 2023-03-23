@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "jinjat"
-version = "0.9.8"
+version = "0.1"
 description = "A dbt server and suite of optional developer tools to make developing with dbt delightful."
-authors = ["z3z1ma <butler.alex2010@gmail.com>"]
+authors = ["buremba <emrekabakci@gmail.com>"]
 license = "Apache 2.0"
 readme = "README.md"
 classifiers = [
@@ -16,7 +16,7 @@ classifiers = [
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
 ]
-keywords = ["dbt", "server", "streamlit", "git", "diff"]
+keywords = ["dbt", "server", "streamlit", "git", "refine", "data-app", "snowflake"]
 documentation = "https://github.com/jinjat-data/jinjat"
 repository = "https://github.com/jinjat-data/jinjat"
 
@@ -94,4 +94,3 @@ include_trailing_comma = true
 
 [tool.poetry.scripts]
 jinjat = 'jinjat.main:cli'
-jinjat-proxy = 'jinjat.server:cli'
