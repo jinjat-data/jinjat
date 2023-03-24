@@ -9,13 +9,12 @@ from fastapi.openapi.utils import get_openapi
 from starlette.middleware.cors import CORSMiddleware
 from starlette.routing import Mount
 
-from jinjat.core.dbt.dbt_project import DbtProjectContainer, DbtProject
+from jinjat.core.dbt.dbt_project import DbtProjectContainer, DbtProject, DbtTarget
 from jinjat.core.log_controller import logger
 from jinjat.core.models import JinjatProjectConfig
 from jinjat.core.routes.analysis import create_analysis_apps
 from jinjat.core.routes.project import router as project_router
 from jinjat.core.util.api import register_jsonapi_exception_handlers, rapidoc_html, CustomButton, DBT_PROJECT_HEADER
-from jinjat.core.util.dbt import DbtTarget
 
 SERVER_OPT = "SERVER_OPT"
 

@@ -7,9 +7,6 @@ from typing import List, Optional, Callable
 
 import jmespath
 import jsonref
-from dbt.clients.jinja import get_environment
-from dbt.context.context_config import ContextConfig
-from dbt.context.providers import generate_parser_model_context
 from dbt.node_types import NodeType
 from deepmerge import always_merger
 from fastapi import FastAPI
@@ -19,11 +16,11 @@ from openapi_schema_pydantic import Parameter
 from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import JSONResponse
-from jinja2schema import infer, to_json_schema, infer_from_ast, parse
 
 from jinjat.core.dbt.dbt_project import DbtProject
 from jinjat.core.exceptions import InvalidJinjaConfig
-from jinjat.core.models import generate_dbt_context_from_request, JinjatExecutionResult, JinjatAnalysisConfig, Transform, \
+from jinjat.core.models import generate_dbt_context_from_request, JinjatExecutionResult, JinjatAnalysisConfig, \
+    Transform, \
     JinjatProjectConfig, JSON_COLUMNS_QUERY_PARAM
 from jinjat.core.routes.project import _execute_jinjat_query
 from jinjat.core.util.api import get_human_readable_error, rapidoc_html, register_jsonapi_exception_handlers, \

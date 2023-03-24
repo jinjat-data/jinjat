@@ -1,4 +1,5 @@
 import dbt.adapters.factory
+from pydantic import BaseModel
 
 from jinjat.core.exceptions import ExecuteSqlFailure
 
@@ -42,7 +43,6 @@ from dbt.config.runtime import RuntimeConfig
 from dbt.context.providers import generate_runtime_model_context
 from dbt.contracts.connection import AdapterResponse
 from dbt.contracts.graph.manifest import ManifestNode, MaybeNonSource, MaybeParsedSource
-from dbt.exceptions import RuntimeException
 from dbt.flags import set_from_args
 from dbt.node_types import NodeType
 from dbt.parser.manifest import ManifestLoader, process_node
@@ -66,6 +66,7 @@ class DbtProject:
             project_dir: Optional[str] = None,
             threads: Optional[int] = 1,
             vars: Optional[str] = "{}",
+            profile: Optional[str] = None,
     ):
         self.args = ConfigInterface(
             threads=threads,
@@ -73,6 +74,7 @@ class DbtProject:
             profiles_dir=profiles_dir,
             project_dir=project_dir,
             vars=vars,
+            profile=profile
         )
 
         self.parse_project(init=True)
@@ -188,7 +190,7 @@ class DbtProject:
             adapter.connections.set_connection_name()
             adapter.debug_query()
         except Exception as query_exc:
-            raise RuntimeException(f"Could not connect to Database: {query_exc}") from query_exc
+            raise Exception(f"Could not connect to Database: {query_exc}") from query_exc
         else:
             return adapter
 
@@ -331,7 +333,7 @@ class DbtProject:
                 raise ExecuteSqlFailure(raw_sql, None, e)
         try:
             table = self.adapter_execute(compiled_sql, fetch=fetch)
-        except RuntimeException as e:
+        except Exception as e:
             raise ExecuteSqlFailure(raw_sql, compiled_sql, e)
 
         return DbtAdapterExecutionResult(
@@ -433,6 +435,14 @@ class DbtProject:
         )
 
 
+class DbtTarget(BaseModel):
+    target: Optional[str] = None
+    profiles_dir: Optional[str] = None
+    project_dir: Optional[str] = None
+    threads: Optional[int] = 1
+    vars: Optional[str] = "{}"
+
+
 class DbtProjectContainer:
     """This class manages multiple DbtProjects which each correspond
     to a single dbt project on disk. This is mostly for jinjat server use"""
@@ -464,15 +474,12 @@ class DbtProjectContainer:
 
     def add_project(
             self,
-            target: Optional[str] = None,
-            profiles_dir: Optional[str] = None,
-            project_dir: Optional[str] = None,
-            threads: Optional[int] = 1,
-            name_override: Optional[str] = "",
-            vars: Optional[str] = "{}",
+            dbt_target: DbtTarget,
+            name_override: Optional[str] = None
     ) -> DbtProject:
         """Add a DbtProject with arguments"""
-        project = DbtProject(target, profiles_dir, project_dir, threads, vars)
+        project = DbtProject(dbt_target.target, dbt_target.profiles_dir, dbt_target.project_dir, dbt_target.threads,
+                             dbt_target.vars)
         project_name = name_override or project.config.project_name
         if self._default_project is None:
             self._default_project = project_name

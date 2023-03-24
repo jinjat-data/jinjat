@@ -1,4 +1,5 @@
 import functools
+import json
 import multiprocessing
 import os
 import subprocess
@@ -8,8 +9,10 @@ from typing import Callable, Optional
 
 import click
 import uvicorn
+from dbt.cli.option_types import YAML
 
 from jinjat.core.dbt.config import DEFAULT_PROFILES_DIR
+from jinjat.core.generator import compile_macro
 from jinjat.core.log_controller import logger
 from jinjat.core.server import DbtTarget, SERVER_OPT, app
 
@@ -21,16 +24,19 @@ CONTEXT = {"max_content_width": 800}
 def cli():
     pass
 
+
 def shared_server_opts(func: Callable) -> Callable:
     @click.option(
         "--host",
         type=click.STRING,
         help="The host to serve the server on",
+        envvar="JINJAT_HOST",
         default="localhost",
     )
     @click.option(
         "--port",
         type=click.INT,
+        envvar="JINJAT_PORT",
         help="The port to serve the server on",
         default=8581,
     )
@@ -60,6 +66,12 @@ def shared_single_project_opts(func: Callable) -> Callable:
         type=click.STRING,
         help="Which profile to load. Overrides setting in dbt_project.yml.",
     )
+    @click.option(
+        "--vars",
+        envvar=None,
+        default='{}',
+        help="Supply variables to the project. This argument overrides variables defined in your dbt_project.yml file. This argument should be a YAML string, eg. '{my_variable: my_value}'",
+    )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
@@ -67,29 +79,36 @@ def shared_single_project_opts(func: Callable) -> Callable:
     return wrapper
 
 
-def run_server(host="localhost", port=8581):
-    app.state.test = 1
-    uvicorn.run(
-        "jinjat.core.server:app",
-        host=host,
-        port=port,
-        log_level="info",
-        reload=False,
-        workers=1,
-    )
-
-
 @cli.command(context_settings=CONTEXT)
 @shared_single_project_opts
-@shared_server_opts
-def generate_crud(
+@click.argument(
+    "macro",
+    type=click.STRING,
+)
+@click.option(
+    "--args",
+    type=YAML(),
+    default="{}",
+    help="""Supply arguments to the macro. This dictionary will be mapped to the
+            keyword arguments defined in the selected macro. This argument should
+            be a YAML string, eg. '{my_variable: my_value}'
+            """,
+)
+@click.option(
+    "--dry-run",
+    is_flag=True
+)
+def generate(
+        macro: str,
+        args: dict,
+        dry_run : bool,
         project_dir: str,
         profiles_dir: str,
         target: Optional[str],
-        host: str,
-        port: int,
+        vars: str
 ):
-    logger().info(":water_wave: Executing jinjat in single-tenant mode")
+    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=vars)
+    compile_macro(dbt_target, macro, args, dry_run)
 
 
 @cli.command(context_settings=CONTEXT)
@@ -169,12 +188,24 @@ def streamlit(
         script_args.append(target)
 
     streamlit_command = ["streamlit", "run", "--runner.magicEnabled=false",
-                     Path(__file__).parent / "playground.py", ] + ctx.args + script_args
+                         Path(__file__).parent / "playground.py", ] + ctx.args + script_args
     print(streamlit_command)
     subprocess.run(
         streamlit_command,
         env=os.environ,
         cwd=Path.cwd(),
+    )
+
+
+def run_server(host="localhost", port=8581):
+    app.state.test = 1
+    uvicorn.run(
+        "jinjat.core.server:app",
+        host=host,
+        port=port,
+        log_level="info",
+        reload=False,
+        workers=1,
     )
 
 

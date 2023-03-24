@@ -38,16 +38,17 @@ class ConfigInterface:
             profiles_dir: Optional[str] = None,
             project_dir: Optional[str] = None,
             vars: Optional[str] = "{}",
+            profile: Optional[str] = None,
     ):
         self.threads = threads
-        if target:
-            self.target = target  # We don't want target in args context if it is None
+        self.target = target
         self.profiles_dir = profiles_dir or DEFAULT_PROFILES_DIR
         self.project_dir = project_dir
         self.vars = vars  # json.dumps str
         self.dependencies = []
         self.single_threaded = threads == 1
         self.quiet = True
+        self.profile = profile
 
     @classmethod
     def from_str(cls, arguments: str) -> "ConfigInterface":

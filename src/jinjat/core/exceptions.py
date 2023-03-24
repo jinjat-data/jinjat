@@ -1,6 +1,5 @@
 from typing import Optional
 
-from dbt.exceptions import RuntimeException
 from pydantic import BaseModel
 
 class DbtExecutionError(BaseModel):
@@ -18,7 +17,7 @@ class InvalidJinjaConfig(SystemExit):
 
 class ExecuteSqlFailure(RuntimeError):
 
-    def __init__(self, raw_sql: str, compiled_sql: Optional[str], dbt_exception: RuntimeException):
+    def __init__(self, raw_sql: str, compiled_sql: Optional[str], dbt_exception: Exception):
         self.raw_sql = raw_sql
         self.compiled_sql = compiled_sql
         self.dbt_exception = dbt_exception
