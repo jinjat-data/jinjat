@@ -84,4 +84,3 @@ jobs:
             password: ${{ secrets.DOCKER_PASSWORD }}
             tags: "latest"
             workdir: docker
-            platforms: linux/amd64,linux/arm64
