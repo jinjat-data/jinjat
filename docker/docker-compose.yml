@@ -12,6 +12,4 @@ services:
       # The line below is useful if using dbt interactively; should not be
       # needed for automated tests.
     entrypoint: /bin/bash
-    environment:
-      - POSTGRES_HOST=postgres
     tty: true

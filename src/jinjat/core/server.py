@@ -7,28 +7,27 @@ from deepmerge import always_merger
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 from starlette.middleware.cors import CORSMiddleware
+from starlette.responses import HTMLResponse, JSONResponse
 from starlette.routing import Mount
+from starlette.staticfiles import StaticFiles
 
 from jinjat.core.dbt.dbt_project import DbtProjectContainer, DbtProject, DbtTarget
 from jinjat.core.log_controller import logger
 from jinjat.core.models import JinjatProjectConfig
+from jinjat.core.routes.admin import app as admin_api_router
 from jinjat.core.routes.analysis import create_analysis_apps
-from jinjat.core.routes.project import router as project_router
 from jinjat.core.util.api import register_jsonapi_exception_handlers, rapidoc_html, CustomButton, DBT_PROJECT_HEADER
+from jinjat.core.util.filesystem import get_project_root
 
 SERVER_OPT = "SERVER_OPT"
 
 app = FastAPI(redoc_url=None, docs_url=None)
 
-origins = [
-    "http://localhost:3000",
-    "https://jinjat-refine.pages.dev"
-]
-
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[
+        "http://localhost:3000"
+    ],
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -60,9 +59,7 @@ def unmount_app(new_app: FastAPI):
 if SERVER_OPT in os.environ:
     dbt_target = DbtTarget.parse_raw(os.environ[SERVER_OPT])
     logger().info("Registering project: {}".format(dbt_target.json()))
-    project = app.state.dbt_project_container.add_project(project_dir=dbt_target.project_dir,
-                                                          profiles_dir=dbt_target.profiles_dir,
-                                                          target=dbt_target.target, )
+    project = app.state.dbt_project_container.add_project(dbt_target)
 
     config = get_jinjat_project_config(project.project_root)
 
@@ -73,30 +70,49 @@ if SERVER_OPT in os.environ:
 
         openapi_schema = get_openapi(title=project.project_name, version=project.config.version, routes=app.routes)
         app.openapi_schema = openapi_schema
-        always_merger.merge(app.openapi_schema.get('info'), config.openapi.get("info", {}))
+        if config.openapi is not None:
+            always_merger.merge(app.openapi_schema.get('info'), config.openapi.get("info", {}))
         return app.openapi_schema
 
 
-    analysis_path = "/{}".format(project.config.version)
-
     register_jsonapi_exception_handlers(app)
-    app.add_route("/",
-                  functools.partial(rapidoc_html, CustomButton("Analysis APIs", analysis_path)),
-                  include_in_schema=False)
 
     app.openapi = custom_openapi
 
-    app.include_router(project_router)
-
-    logger().info("Registering analysis routes")
-
+    analysis_path = "/{}".format(project.config.version)
     analysis_app = create_analysis_apps(config, project)
 
     logger().info("{} analysis found with `jinjat` config\n".format(len(analysis_app.routes)))
 
+    admin_api_router.router.add_route("/docs",
+                                      functools.partial(rapidoc_html, CustomButton("Analysis APIs", f"{analysis_path}/docs")),
+                                      include_in_schema=False)
+    app.mount("/admin", admin_api_router)
+
     if len(analysis_app.routes) > 0:
         unmount_app(analysis_app)
         app.mount(analysis_path, analysis_app)
+
+    default_refine_project = os.path.join(get_project_root(), *["src", "jinjat", "jinjat-refine"])
+    project_static_files = dbt_target.static_dir or os.path.join(project.project_root, "static")
+
+    static_files = StaticFiles(directory=project_static_files, html=True)
+
+    if dbt_target.refine:
+        static_files.all_directories = [project_static_files, default_refine_project]
+    else:
+        static_files.all_directories = [project_static_files]
+        if not os.path.exists(os.path.join(project_static_files, "index.html")):
+            def welcome_page(request):
+                return JSONResponse({
+                    "analysis_api_docs": f"{request.base_url}{analysis_path}/docs",
+                    "admin_api_docs": f"{request.base_url}admin/docs",
+                    "magic": "https://jin.jat",
+                    "options": dbt_target.dict()
+                })
+            app.router.add_route("/", welcome_page)
+
+    app.mount("/", static_files, name="static")
 
 
 # We use ambient reinitialization based on TTL now

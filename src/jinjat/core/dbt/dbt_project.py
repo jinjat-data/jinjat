@@ -1,4 +1,7 @@
+import sys
+
 import dbt.adapters.factory
+from dbt.exceptions import CompilationError
 from pydantic import BaseModel
 
 from jinjat.core.exceptions import ExecuteSqlFailure
@@ -131,7 +134,11 @@ class DbtProject:
             self.config, self.config.load_dependencies(), self.adapter.connections.set_query_header
         )
         # endpatched (https://github.com/dbt-labs/dbt-core/blob/main/core/dbt/parser/manifest.py#L545)
-        self.dbt = project_parser.load()
+        try:
+            self.dbt = project_parser.load()
+        except CompilationError as e:
+            logger().error(f"Encountered an error loading dbt module:\n{e}")
+            sys.exit(1)
         self.dbt.build_flat_graph()
         project_parser.save_macros_to_adapter(self.adapter)
         self._sql_parser = None
@@ -439,6 +446,8 @@ class DbtTarget(BaseModel):
     target: Optional[str] = None
     profiles_dir: Optional[str] = None
     project_dir: Optional[str] = None
+    static_dir: Optional[str] = None
+    refine: Optional[bool] = False
     threads: Optional[int] = 1
     vars: Optional[str] = "{}"
 

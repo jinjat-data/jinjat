@@ -22,7 +22,7 @@ from jinjat.core.exceptions import InvalidJinjaConfig
 from jinjat.core.models import generate_dbt_context_from_request, JinjatExecutionResult, JinjatAnalysisConfig, \
     Transform, \
     JinjatProjectConfig, JSON_COLUMNS_QUERY_PARAM
-from jinjat.core.routes.project import _execute_jinjat_query
+from jinjat.core.routes.admin import _execute_jinjat_query
 from jinjat.core.util.api import get_human_readable_error, rapidoc_html, register_jsonapi_exception_handlers, \
     CustomButton, elements_html
 from jinjat.core.util.jmespath import extract_jmespath
@@ -58,7 +58,7 @@ def create_components_from_nodes(project: DbtProject):
     components = {}
     for node in schema_nodes:
         jinjat = node.config.meta.get('jinjat')
-        if 'schema' in jinjat:
+        if jinjat is not None and 'schema' in jinjat:
             schema = Schema.parse_obj(jinjat.get('schema'))
         else:
             schema = Schema(type='object')
@@ -106,9 +106,9 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
                             project.dbt.nodes.values())
     api = FastAPI(redoc_url=None, docs_url=None, openapi_url=None)
     register_jsonapi_exception_handlers(api)
-    api.add_route("/", functools.partial(rapidoc_html, CustomButton("Admin APIs", "/")), include_in_schema=False)
-    api.add_route("/elements", functools.partial(elements_html, CustomButton("Admin APIs", "/")),
-                  include_in_schema=False)
+    api.add_route("/docs", functools.partial(rapidoc_html, CustomButton("Admin APIs", "/admin/docs")), include_in_schema=False)
+    # api.add_route("/elements", functools.partial(elements_html, CustomButton("Admin APIs", "/")),
+    #               include_in_schema=False)
 
     async def custom_openapi(req: Request) -> JSONResponse:
         extract_path = req.query_params.getlist("jmespath")
@@ -133,10 +133,13 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
     api.add_route("/openapi.json", custom_openapi, include_in_schema=False)
 
     for node in analysis_nodes:
-        try:
-            jinjat_config = JinjatAnalysisConfig.parse_obj(node.config.extra['jinjat'])
-        except ValidationError as e:
-            raise InvalidJinjaConfig(node.patch_path, node.original_file_path, get_human_readable_error(e))
+        if 'jinjat' not in node.config.extra:
+            jinjat_config = JinjatAnalysisConfig()
+        else:
+            try:
+                jinjat_config = JinjatAnalysisConfig.parse_obj(node.config.extra['jinjat'])
+            except ValidationError as e:
+                raise InvalidJinjaConfig(node.patch_path, node.original_file_path, get_human_readable_error(e))
         sql = node.raw_code
 
         methods = [jinjat_config.method] if jinjat_config.method is not None else None

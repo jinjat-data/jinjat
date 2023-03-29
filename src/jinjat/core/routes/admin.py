@@ -1,9 +1,10 @@
 import asyncio
+import functools
 import json
 from datetime import datetime
 from typing import Optional, Union
 
-from fastapi import APIRouter
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
 from starlette import status
 from starlette.background import BackgroundTasks
@@ -17,8 +18,7 @@ from jinjat.core.models import JinjatExecutionResult, DbtAdapterExecutionResult,
 from jinjat.core.util.api import JinjatErrorContainer, JinjatError, JinjatErrorCode, DBT_PROJECT_HEADER
 from jinjat.core.util.jmespath import extract_jmespath
 
-router = APIRouter()
-
+app = FastAPI(redoc_url=None, docs_url=None, title="Admin API", version="0.1")
 
 class JinjatCompileResult(BaseModel):
     result: str
@@ -40,7 +40,7 @@ class DbtAdhocQueryRequest(BaseModel):
     limit: Optional[int]
 
 
-@router.get(
+@app.get(
     "/manifest.json"
 )
 async def execute_manifest_query(
@@ -63,7 +63,7 @@ async def execute_manifest_query(
     return result
 
 
-@router.post(
+@app.post(
     "/execute",
     response_model=JinjatExecutionResult
 )
@@ -107,7 +107,7 @@ async def _execute_jinjat_query(project: DbtProject, execute_function, query: st
     return result
 
 
-@router.post(
+@app.post(
     "/compile",
     response_model=JinjatCompileResult
 )
@@ -152,7 +152,7 @@ async def compile_sql(
     return JinjatCompileResult(result=compiled_query)
 
 
-@router.get(
+@app.get(
     "/refresh",
 )
 async def refresh(
@@ -224,7 +224,7 @@ def _reset(
     return rv
 
 
-@router.get("/health")
+@app.get("/health")
 async def health_check(
         request: Request,
         # x_dbt_project: str = Header(),

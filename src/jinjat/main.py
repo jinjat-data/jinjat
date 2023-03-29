@@ -1,5 +1,4 @@
 import functools
-import json
 import multiprocessing
 import os
 import subprocess
@@ -101,7 +100,7 @@ def shared_single_project_opts(func: Callable) -> Callable:
 def generate(
         macro: str,
         args: dict,
-        dry_run : bool,
+        dry_run: bool,
         project_dir: str,
         profiles_dir: str,
         target: Optional[str],
@@ -111,6 +110,16 @@ def generate(
     compile_macro(dbt_target, macro, args, dry_run)
 
 
+@click.option(
+    "--static-dir",
+    type=click.Path(exists=True, dir_okay=True, file_okay=False),
+    help="The full path of static files to serve. Default is [project_path]/static",
+)
+@click.option(
+    "--refine",
+    is_flag=True,
+    help="Enable Refine UI"
+)
 @cli.command(context_settings=CONTEXT)
 @shared_single_project_opts
 @shared_server_opts
@@ -120,10 +129,14 @@ def serve(
         target: Optional[str],
         host: str,
         port: int,
+        vars: str,
+        static_dir: str,
+        refine: bool,
 ):
     logger().info(":water_wave: Executing jinjat in single-tenant mode")
 
-    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target)
+    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=vars,
+                           static_dir=static_dir, refine=refine)
     os.environ[SERVER_OPT] = dbt_target.json()
 
     server = multiprocessing.Process(target=run_server, args=(host, port))
