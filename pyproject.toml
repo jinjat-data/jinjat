@@ -21,25 +21,23 @@ documentation = "https://github.com/jinjat-data/jinjat"
 repository = "https://github.com/jinjat-data/jinjat"
 
 [tool.poetry.dependencies]
-python = ">=3.8,<3.11"
+python = ">=3.6,<4"
 click = ">7"
 dbt-core = "=1.4.5"
 watchdog = ">=2.2.1"
 "ruamel.yaml" = ">=0.17"
 rich = ">=10"
 pydantic = "^1.9.1"
-GitPython = "^3.1.27"
 bottle = "^0.12.23"
 orjson = "^3.8.0"
 fastapi = "^0.85.0"
 openapi-schema-pydantic = "^1.2.4"
 deepmerge = "^1.1.0"
 jsonschema = "^3.0"
-fastapi-crudrouter = "^0.8.5"
 uvicorn = { extras = ["standard"], version = "^0.18.3" }
 jinja2-simple-tags = "^0.4.0"
 jsonref = "^1.1.0"
-cookiecutter = "^2.1.1"
+jmespath = "^1.0.1"
 # Streamlit Playground Dependencies
 streamlit = { version = ">=1.0.0", optional = true }
 streamlit-ace = { version = ">=0.1.0", optional = true }
@@ -53,8 +51,8 @@ feedparser = { version = "^6.0.10", optional = true }
 # Testing duckdb
 duckcli = { version = "^0.2.1", optional = true }
 dbt-duckdb = { version = "^1.4.1", optional = true }
-jmespath = "^1.0.1"
 pandas = "^1.5.3"
+fal-serverless = "0.6.29"
 
 [tool.poetry.dev-dependencies]
 black = ">=21.9b0"
@@ -79,6 +77,7 @@ playground = [
     "scipy",
     "feedparser",
 ]
+
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

@@ -57,7 +57,7 @@ def compile_macro(dbt_target: DbtTarget, macro_name: str, macro_args: str, dry_r
 
     number_of_existing_files = sum(os.path.exists(file[0]) for file in files)
     if number_of_existing_files > 0:
-        prompt_message = f"There are {number_of_existing_files} files that you will be overwritten. Type '{number_of_existing_files}' to continue"
+        prompt_message = f"There are {number_of_existing_files} files that you will be overwritten. Type '{number_of_existing_files}' and enter to continue"
         check = str(number_of_existing_files)
     else:
         prompt_message = f"{len(files)} files will be created. Type enter to continue"

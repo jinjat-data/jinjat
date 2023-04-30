@@ -8,7 +8,7 @@ from ruamel.yaml import YAML
 
 CACHE = {}
 CACHE_VERSION = 1
-JINJAT_MACRO_NAME = "request"
+JINJAT_REQUEST_VAR_NAME = "jinjat_request"
 
 DBT_MAJOR_VER, DBT_MINOR_VER, DBT_PATCH_VER = (int(v) for v in dbt_version.split("."))
 RAW_CODE = "raw_code" if DBT_MAJOR_VER >= 1 and DBT_MINOR_VER >= 3 else "raw_sql"

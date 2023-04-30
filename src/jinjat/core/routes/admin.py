@@ -15,7 +15,8 @@ from jinjat.core.dbt.dbt_project import DbtProjectContainer, DbtProject
 from jinjat.core.exceptions import ExecuteSqlFailure
 from jinjat.core.models import JinjatExecutionResult, DbtAdapterExecutionResult, generate_dbt_context_from_request, \
     DbtQueryRequestContext, JSON_COLUMNS_QUERY_PARAM
-from jinjat.core.util.api import JinjatErrorContainer, JinjatError, JinjatErrorCode, DBT_PROJECT_HEADER
+from jinjat.core.util.api import JinjatErrorContainer, JinjatError, JinjatErrorCode, DBT_PROJECT_HEADER, \
+    DBT_PROJECT_NAME
 from jinjat.core.util.jmespath import extract_jmespath
 
 app = FastAPI(redoc_url=None, docs_url=None, title="Admin API", version="0.1")
@@ -56,10 +57,11 @@ async def execute_manifest_query(
     if project is None:
         raise jinjat_project_not_found_error()
 
+
     manifest_file = project.dbt.writable_manifest().to_dict()
-    result = extract_jmespath([jmespath], manifest_file)
+    result = extract_jmespath(jmespath, manifest_file, project)
     response.headers[DBT_PROJECT_HEADER] = project.config.version
-    result
+    response.headers[DBT_PROJECT_NAME] = project.config.project_name
     return result
 
 

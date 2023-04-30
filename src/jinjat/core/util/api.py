@@ -10,6 +10,7 @@ from starlette.responses import HTMLResponse, Response, JSONResponse
 
 
 DBT_PROJECT_HEADER = 'x-dbt-project-version'
+DBT_PROJECT_NAME = 'x-dbt-project-name'
 
 def get_human_readable_error(validation_error: ValidationError) -> str:
     error_str = "Validation errors:\n"

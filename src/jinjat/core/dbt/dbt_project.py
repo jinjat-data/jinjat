@@ -17,7 +17,7 @@ from jinjat.core.exceptions import ExecuteSqlFailure
 # anywhere dbt-core needs config including in all `get_adapter` calls
 dbt.adapters.factory.get_adapter = lambda config: config.adapter
 
-from jinjat.core.dbt.config import ConfigInterface, YamlHandler, JINJAT_MACRO_NAME, RAW_CODE, COMPILED_CODE, \
+from jinjat.core.dbt.config import ConfigInterface, YamlHandler, JINJAT_REQUEST_VAR_NAME, RAW_CODE, COMPILED_CODE, \
     has_jinja, T
 from jinjat.core.models import DbtQueryRequestContext, DbtAdapterExecutionResult, DbtAdapterCompilationResult
 import os
@@ -349,7 +349,7 @@ class DbtProject:
             compiled_sql,
         )
 
-    def compile_sql(self, raw_sql: str, ctx: DbtQueryRequestContext, retry: int = 3) -> DbtAdapterCompilationResult:
+    def compile_sql(self, raw_sql: str, ctx: Optional[DbtQueryRequestContext] = None, retry: int = 3) -> DbtAdapterCompilationResult:
         """Creates a node with `get_server_node` method. Compile generated node.
         Has a retry built in because even uuidv4 cannot gaurantee uniqueness at the speed
         in which we can call this function concurrently. A retry significantly increases the stability"""
@@ -365,13 +365,13 @@ class DbtProject:
         finally:
             self._clear_node(temp_node_id)
 
-    def compile_node(self, node: ManifestNode, ctx: DbtQueryRequestContext) -> DbtAdapterCompilationResult:
+    def compile_node(self, node: ManifestNode, ctx: Optional[DbtQueryRequestContext]) -> DbtAdapterCompilationResult:
         """Compiles existing node."""
         self.sql_compiler.node = node
         compiler = self.adapter.get_compiler()
         compiled_node = compiler.compile_node(self.sql_compiler.node,
                                               self.dbt,
-                                              {JINJAT_MACRO_NAME: lambda _=None: ctx},
+                                              {JINJAT_REQUEST_VAR_NAME: ctx} if ctx is not None else {},
                                               write=False)
         return DbtAdapterCompilationResult(
             getattr(compiled_node, RAW_CODE),
@@ -446,7 +446,6 @@ class DbtTarget(BaseModel):
     target: Optional[str] = None
     profiles_dir: Optional[str] = None
     project_dir: Optional[str] = None
-    static_dir: Optional[str] = None
     refine: Optional[bool] = False
     threads: Optional[int] = 1
     vars: Optional[str] = "{}"

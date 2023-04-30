@@ -20,11 +20,10 @@ from starlette.responses import JSONResponse
 from jinjat.core.dbt.dbt_project import DbtProject
 from jinjat.core.exceptions import InvalidJinjaConfig
 from jinjat.core.models import generate_dbt_context_from_request, JinjatExecutionResult, JinjatAnalysisConfig, \
-    Transform, \
     JinjatProjectConfig, JSON_COLUMNS_QUERY_PARAM
 from jinjat.core.routes.admin import _execute_jinjat_query
 from jinjat.core.util.api import get_human_readable_error, rapidoc_html, register_jsonapi_exception_handlers, \
-    CustomButton, elements_html
+    CustomButton
 from jinjat.core.util.jmespath import extract_jmespath
 
 ANALYSIS_FILE_PATH_REGEX = re.compile(r"^analysis\/(.*)\.sql$")
@@ -87,18 +86,16 @@ def parse_param(path: str) -> (str, List[str]):
     return '/'.join(paths), param_list
 
 
-def compile_transform(transform: Optional[List[Transform]]):
-    if transform is None or len(transform) == 0:
+def compile_transform(jmespath_exp: Optional[str]):
+    if jmespath_exp is None or len(jmespath_exp) == 0:
         return lambda body: body
 
-    compiled_transforms = [jmespath.compile(item.jmespath) for item in transform]
+    compiled_transforms = jmespath.compile(jmespath_exp)
 
     def transform_data(body: dict):
-        for transform in compiled_transforms:
-            body = transform.search(body)
-        return body
+        return compiled_transforms.search(body)
 
-    return transform_data
+    return compiled_transforms.search
 
 
 def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: DbtProject) -> FastAPI:
@@ -106,14 +103,16 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
                             project.dbt.nodes.values())
     api = FastAPI(redoc_url=None, docs_url=None, openapi_url=None)
     register_jsonapi_exception_handlers(api)
-    api.add_route("/docs", functools.partial(rapidoc_html, CustomButton("Admin APIs", "/admin/docs")), include_in_schema=False)
+    api.add_route("/docs", functools.partial(rapidoc_html, CustomButton("Admin APIs", "/admin/docs")),
+                  include_in_schema=False)
+
     # api.add_route("/elements", functools.partial(elements_html, CustomButton("Admin APIs", "/")),
     #               include_in_schema=False)
 
     async def custom_openapi(req: Request) -> JSONResponse:
-        extract_path = req.query_params.getlist("jmespath")
+        extract_path = req.query_params.get("jmespath")
         if api.openapi_schema:
-            return JSONResponse(extract_jmespath(extract_path, api.openapi_schema))
+            return JSONResponse(extract_jmespath(extract_path, api.openapi_schema, project))
 
         openapi_schema = get_openapi(title=project.project_name, version=project.config.version, routes=api.routes,
                                      servers=[{"url": req.scope.get("root_path", "").rstrip("/")}])
@@ -128,7 +127,7 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
 
         openapi_schema = jsonref.replace_refs(deepcopy(openapi_schema), base_uri="", proxies=False, lazy_load=False)
         api.openapi_schema = openapi_schema
-        return JSONResponse(extract_jmespath(extract_path, api.openapi_schema))
+        return JSONResponse(extract_jmespath(extract_path, api.openapi_schema, project))
 
     api.add_route("/openapi.json", custom_openapi, include_in_schema=False)
 
@@ -171,10 +170,20 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
         # if openapi.requestBody.content.get('application/json').schema()
 
         openapi_dict = openapi.dict(by_alias=True, exclude_none=True, exclude_unset=True)
+        try:
+            transform_request = compile_transform(jinjat_config.transform_request)
+        except Exception as e:
+            raise InvalidJinjaConfig(node.original_file_path, None, f"Unable to parse `transform_request` jmespath expression {jinjat_config.transform_request}: {e}")
+
+        try:
+            transform_response = compile_transform(jinjat_config.transform_response)
+        except Exception as e:
+            raise InvalidJinjaConfig(node.original_file_path, None, f"Unable to parse `transform_response` jmespath expression {jinjat_config.transform_response}: {e}")
+
         api.add_api_route(api_path,
                           endpoint=functools.partial(handle_analysis_api, project, sql, openapi_dict,
-                                                     compile_transform(jinjat_config.transform_request),
-                                                     compile_transform(jinjat_config.transform_response),
+                                                     transform_request,
+                                                     transform_response,
                                                      fetch_enabled,
                                                      jinjat_project_config),
                           tags=node.tags,

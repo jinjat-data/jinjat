@@ -9,6 +9,7 @@ from typing import Callable, Optional
 import click
 import uvicorn
 from dbt.cli.option_types import YAML
+from fal_serverless import sync_dir
 
 from jinjat.core.dbt.config import DEFAULT_PROFILES_DIR
 from jinjat.core.generator import compile_macro
@@ -38,6 +39,20 @@ def shared_server_opts(func: Callable) -> Callable:
         envvar="JINJAT_PORT",
         help="The port to serve the server on",
         default=8581,
+    )
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def serve_project_opts(func: Callable) -> Callable:
+    @click.option(
+        "--refine",
+        is_flag=True,
+        help="Enable Refine UI",
+        default=False
     )
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -110,16 +125,29 @@ def generate(
     compile_macro(dbt_target, macro, args, dry_run)
 
 
-@click.option(
-    "--static-dir",
-    type=click.Path(exists=True, dir_okay=True, file_okay=False),
-    help="The full path of static files to serve. Default is [project_path]/static",
-)
-@click.option(
-    "--refine",
-    is_flag=True,
-    help="Enable Refine UI"
-)
+@serve_project_opts
+@cli.command(context_settings=CONTEXT)
+@shared_single_project_opts
+def serve_fal(
+        project_dir: str,
+        profiles_dir: str,
+        target: Optional[str],
+        vars: str,
+        refine: bool,
+):
+    print(1)
+
+    from fal_serverless import isolated
+    @isolated(requirements=["dbt-core==1.4.5", "pydantic^1.9.1", "fastapi^0.85.0",
+                            "openapi-schema-pydantic^1.2.4", "deepmerge^1.1.0",
+                            "jsonschema^3.0", "jsonref^1.1.0", "jmespath^1.0.1"], exposed_port=5656, keep_alive=600)
+    def fal_wrapper():
+        sync_dir(profiles_dir, "project")
+        sync_dir(project_dir, "profiles")
+        serve('/data/sync/project', '/data/sync/profiles', target, "0.0.0.0", 5656, vars, None, refine)
+
+
+@serve_project_opts
 @cli.command(context_settings=CONTEXT)
 @shared_single_project_opts
 @shared_server_opts
@@ -130,13 +158,11 @@ def serve(
         host: str,
         port: int,
         vars: str,
-        static_dir: str,
         refine: bool,
-):
+) -> object:
     logger().info(":water_wave: Executing jinjat in single-tenant mode")
 
-    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=vars,
-                           static_dir=static_dir, refine=refine)
+    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=vars, refine=refine)
     os.environ[SERVER_OPT] = dbt_target.json()
 
     server = multiprocessing.Process(target=run_server, args=(host, port))

@@ -75,14 +75,16 @@ jobs:
     environment: deploy
     runs-on: ubuntu-latest
     steps:
-        - uses: actions/checkout@master
-
-        - name: Publish to Registry
-          uses: elgohr/Publish-Docker-Github-Action@v5
-          with:
-            name: jinjat/jinjat
-            username: ${{ secrets.DOCKER_USERNAME }}
-            password: ${{ secrets.DOCKER_PASSWORD }}
-            tags: "latest"
-            workdir: docker
-            dockerfile: "Dockerfile.dev"
+      - name: Check out the repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 2
+      - name: Publish to Registry
+        uses: elgohr/Publish-Docker-Github-Action@v5
+        with:
+          name: jinjat/jinjat
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+          tags: "latest"
+          workdir: docker
+          dockerfile: "Dockerfile.dev"

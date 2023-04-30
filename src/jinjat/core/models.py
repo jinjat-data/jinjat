@@ -1,4 +1,3 @@
-import functools
 import json
 import typing
 from collections import OrderedDict
@@ -13,17 +12,21 @@ import agate
 from dbt.contracts.connection import AdapterResponse
 from dbt.contracts.graph.manifest import ManifestNode
 from jsonschema import validate
+from openapi_schema_pydantic import OpenAPI
 from openapi_schema_pydantic import Operation
 from pydantic import BaseModel, validator
 from starlette.requests import Request
-
-from openapi_schema_pydantic import OpenAPI
 
 LIMIT_QUERY_PARAM = '_limit'
 JSON_COLUMNS_QUERY_PARAM = '_json_columns'
 
 
+class CORS(BaseModel):
+    allowed_origins: Optional[str]
+
+
 class JinjatProjectConfig(BaseModel):
+    cors: Optional[CORS] = CORS(allowed_origins="*")
     max_limit: Optional[int] = 50000
     default_limit: Optional[int] = 500
     refine: Optional[dict]
@@ -52,21 +55,15 @@ class DbtQueryRequestContext(BaseModel):
         return self.query.get('_debug') is not None
 
 
-class Transform(BaseModel):
-    jmespath: str
-
-
 class JinjatAnalysisConfig(BaseModel):
     cors: Optional[bool]
     openapi: Optional[Operation] = Operation()
     method: Optional[str]
-    body: Optional[dict]
-    headers: Optional[dict]
     fetch: Optional[bool] = True
-    request_model : Optional[str]
+    request_model: Optional[str]
 
-    transform_response: Optional[List[Transform]]
-    transform_request: Optional[List[Transform]]
+    transform_response: Optional[str]
+    transform_request: Optional[str]
 
 
 async def generate_dbt_context_from_request(request: Request, openapi: dict,
@@ -91,6 +88,7 @@ class DbtAdapterExecutionResult:
         self.table = table
         self.raw_sql = raw_sql
         self.compiled_sql = compiled_sql
+
 
 def _convert_table_to_dict(table: agate.Table, json_columns: List[str]):
     output = []

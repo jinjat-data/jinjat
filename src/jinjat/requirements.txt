@@ -7,4 +7,4 @@ duckcli==0.0.1
 dbt-duckdb>=1.1.2,<1.2.0
 
 # Jinjat
-git+https://github.com/buremba/jinjat#egg=jinjat[playground]
+git+https://github.com/jinjat-data/jinjat#egg=jinjat[playground]
