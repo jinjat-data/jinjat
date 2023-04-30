@@ -124,29 +124,6 @@ def generate(
     dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=vars)
     compile_macro(dbt_target, macro, args, dry_run)
 
-
-@serve_project_opts
-@cli.command(context_settings=CONTEXT)
-@shared_single_project_opts
-def serve_fal(
-        project_dir: str,
-        profiles_dir: str,
-        target: Optional[str],
-        vars: str,
-        refine: bool,
-):
-    print(1)
-
-    from fal_serverless import isolated
-    @isolated(requirements=["dbt-core==1.4.5", "pydantic^1.9.1", "fastapi^0.85.0",
-                            "openapi-schema-pydantic^1.2.4", "deepmerge^1.1.0",
-                            "jsonschema^3.0", "jsonref^1.1.0", "jmespath^1.0.1"], exposed_port=5656, keep_alive=600)
-    def fal_wrapper():
-        sync_dir(profiles_dir, "project")
-        sync_dir(project_dir, "profiles")
-        serve('/data/sync/project', '/data/sync/profiles', target, "0.0.0.0", 5656, vars, None, refine)
-
-
 @serve_project_opts
 @cli.command(context_settings=CONTEXT)
 @shared_single_project_opts
