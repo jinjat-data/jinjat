@@ -9,7 +9,6 @@ from typing import Callable, Optional
 import click
 import uvicorn
 from dbt.cli.option_types import YAML
-from fal_serverless import sync_dir
 
 from jinjat.core.dbt.config import DEFAULT_PROFILES_DIR
 from jinjat.core.generator import compile_macro
