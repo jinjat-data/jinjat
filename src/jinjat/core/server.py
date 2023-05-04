@@ -65,7 +65,6 @@ def unmount_app(new_app: FastAPI):
 """Register default project, ugly (using envs?) but works. This will parse the project on disk and load it into memory"""
 if SERVER_OPT in os.environ:
     dbt_target = DbtTarget.parse_raw(os.environ[SERVER_OPT])
-    logger().info("Registering project: {}".format(dbt_target.json()))
     project = app.state.dbt_project_container.add_project(dbt_target)
 
     config = get_jinjat_project_config(project.project_root)

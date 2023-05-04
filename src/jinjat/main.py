@@ -126,6 +126,18 @@ def generate(
 @serve_project_opts
 @cli.command(context_settings=CONTEXT)
 @shared_single_project_opts
+def deploy(
+        project_dir: str,
+        profiles_dir: str,
+        target: Optional[str],
+        vars: str,
+):
+    pass
+
+
+@serve_project_opts
+@cli.command(context_settings=CONTEXT)
+@shared_single_project_opts
 @shared_server_opts
 def serve(
         project_dir: str,
@@ -134,9 +146,9 @@ def serve(
         host: str,
         port: int,
         vars: str,
-        refine: bool,
+        refine: Optional[bool] = False,
 ) -> object:
-    logger().info(":water_wave: Executing jinjat in single-tenant mode")
+    logger().info(f":water_wave: Executing jinjat for dbt project in {project_dir}")
 
     dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=vars, refine=refine)
     os.environ[SERVER_OPT] = dbt_target.json()
