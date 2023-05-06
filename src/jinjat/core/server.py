@@ -18,7 +18,7 @@ from jinjat.core.models import JinjatProjectConfig
 from jinjat.core.routes.admin import app as admin_app
 from jinjat.core.routes.analysis import create_analysis_apps
 from jinjat.core.util.api import register_jsonapi_exception_handlers, rapidoc_html, CustomButton, DBT_PROJECT_HEADER, \
-    DBT_PROJECT_NAME
+    DBT_PROJECT_NAME, StaticFilesWithFallbackIndex, extract_host
 from jinjat.core.util.filesystem import get_project_root
 
 SERVER_OPT = "SERVER_OPT"
@@ -61,25 +61,17 @@ def unmount_app(new_app: FastAPI):
     if existing_apps is not None:
         app.routes.remove(existing_apps)
 
-
-"""Register default project, ugly (using envs?) but works. This will parse the project on disk and load it into memory"""
-if SERVER_OPT in os.environ:
-    dbt_target = DbtTarget.parse_raw(os.environ[SERVER_OPT])
-    project = app.state.dbt_project_container.add_project(dbt_target)
-
+def mount_app(app : FastAPI, project):
     config = get_jinjat_project_config(project.project_root)
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            config.cors.allowed_origins
-        ],
+        allow_origins=config.cors.allowed_origins,
         allow_credentials=False,
         allow_methods=["*"],
         allow_headers=["*"],
         expose_headers=[DBT_PROJECT_HEADER, DBT_PROJECT_NAME]
     )
-
 
     def custom_openapi():
         if app.openapi_schema:
@@ -90,7 +82,6 @@ if SERVER_OPT in os.environ:
         if config.openapi is not None:
             always_merger.merge(app.openapi_schema.get('info'), config.openapi.get("info", {}))
         return app.openapi_schema
-
 
     register_jsonapi_exception_handlers(app)
 
@@ -127,12 +118,18 @@ if SERVER_OPT in os.environ:
             main_directory = default_refine_project
 
         if main_directory is not None:
-            static_files = StaticFiles(directory=main_directory, html=True)
+            static_files = StaticFilesWithFallbackIndex(fallback_home_page_response=lambda scope: {
+                "analysis_api_docs": f"{extract_host(scope)}{project.config.version}/docs" if len(
+                    analysis_app.routes) > 0 else None,
+                "admin_api_docs": f"{extract_host(scope)}admin/docs",
+                "magic": "https://jinj.at",
+                "options": dbt_target.dict()
+            }, directory=main_directory, html=True)
 
     if static_files is not None:
         app.mount("/", static_files, name="static")
 
-    if main_directory is None or not os.path.exists(os.path.join(main_directory, "index.html")):
+    if static_files is None:
         app.router.add_route("/", lambda request: JSONResponse({
             "analysis_api_docs": f"{request.base_url}{project.config.version}/docs" if len(
                 analysis_app.routes) > 0 else None,
@@ -140,6 +137,12 @@ if SERVER_OPT in os.environ:
             "magic": "https://jin.jat",
             "options": dbt_target.dict()
         }))
+
+"""Register default project, ugly (using envs?) but works. This will parse the project on disk and load it into memory"""
+if SERVER_OPT in os.environ:
+    dbt_target = DbtTarget.parse_raw(os.environ[SERVER_OPT])
+    project = app.state.dbt_project_container.add_project(dbt_target)
+    mount_app(app, project)
 
 
 # We use ambient reinitialization based on TTL now

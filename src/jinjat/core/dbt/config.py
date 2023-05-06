@@ -1,7 +1,8 @@
 from typing import (
     Optional, TypeVar,
 )
-from dbt.flags import DEFAULT_PROFILES_DIR
+
+from dbt.cli.resolvers import default_profiles_dir
 from dbt.tracking import disable_tracking
 from dbt.version import __version__ as dbt_version
 from ruamel.yaml import YAML
@@ -42,7 +43,7 @@ class ConfigInterface:
     ):
         self.threads = threads
         self.target = target
-        self.profiles_dir = profiles_dir or DEFAULT_PROFILES_DIR
+        self.profiles_dir = profiles_dir or default_profiles_dir()
         self.project_dir = project_dir
         self.vars = vars  # json.dumps str
         self.dependencies = []

@@ -8,9 +8,9 @@ from typing import Callable, Optional
 
 import click
 import uvicorn
+import yaml
 from dbt.cli.option_types import YAML
 
-from jinjat.core.dbt.config import DEFAULT_PROFILES_DIR
 from jinjat.core.generator import compile_macro
 from jinjat.core.log_controller import logger
 from jinjat.core.server import DbtTarget, SERVER_OPT, app
@@ -70,7 +70,6 @@ def shared_single_project_opts(func: Callable) -> Callable:
     @click.option(
         "--profiles-dir",
         type=click.Path(exists=True, dir_okay=True, file_okay=False),
-        default=DEFAULT_PROFILES_DIR,
         help="Which directory to look in for the profiles.yml file. Defaults to ~/.dbt",
     )
     @click.option(
@@ -116,11 +115,11 @@ def generate(
         args: dict,
         dry_run: bool,
         project_dir: str,
-        profiles_dir: str,
+        profiles_dir: Optional[str],
         target: Optional[str],
         vars: str
 ):
-    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=vars)
+    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=yaml.load(vars, Loader=yaml.Loader))
     compile_macro(dbt_target, macro, args, dry_run)
 
 @serve_project_opts
@@ -128,7 +127,7 @@ def generate(
 @shared_single_project_opts
 def deploy(
         project_dir: str,
-        profiles_dir: str,
+        profiles_dir: Optional[str],
         target: Optional[str],
         vars: str,
 ):
@@ -141,7 +140,7 @@ def deploy(
 @shared_server_opts
 def serve(
         project_dir: str,
-        profiles_dir: str,
+        profiles_dir: Optional[str],
         target: Optional[str],
         host: str,
         port: int,
@@ -150,7 +149,7 @@ def serve(
 ) -> object:
     logger().info(f":water_wave: Executing jinjat for dbt project in {project_dir}")
 
-    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=vars, refine=refine)
+    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=yaml.load(vars, Loader=yaml.Loader), refine=refine)
     os.environ[SERVER_OPT] = dbt_target.json()
 
     server = multiprocessing.Process(target=run_server, args=(host, port))

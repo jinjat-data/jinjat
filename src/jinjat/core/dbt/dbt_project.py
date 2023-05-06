@@ -48,10 +48,10 @@ from dbt.contracts.connection import AdapterResponse
 from dbt.contracts.graph.manifest import ManifestNode, MaybeNonSource, MaybeParsedSource
 from dbt.flags import set_from_args
 from dbt.node_types import NodeType
-from dbt.parser.manifest import ManifestLoader, process_node
+from dbt.parser.manifest import ManifestLoader, process_node, MANIFEST_FILE_NAME
 from dbt.parser.sql import SqlBlockParser, SqlMacroParser
-from dbt.task.parse import MANIFEST_FILE_NAME
 from dbt.task.sql import SqlCompileRunner, SqlExecuteRunner
+from dbt.adapters.factory import register_adapter
 
 from jinjat.core.log_controller import logger
 
@@ -135,6 +135,7 @@ class DbtProject:
         )
         # endpatched (https://github.com/dbt-labs/dbt-core/blob/main/core/dbt/parser/manifest.py#L545)
         try:
+            register_adapter(self.config)
             self.dbt = project_parser.load()
         except CompilationError as e:
             logger().error(f"Encountered an error loading dbt module:\n{e}")
@@ -448,7 +449,7 @@ class DbtTarget(BaseModel):
     project_dir: Optional[str] = None
     refine: Optional[bool] = False
     threads: Optional[int] = 1
-    vars: Optional[str] = "{}"
+    vars: Optional[dict] = {}
 
 
 class DbtProjectContainer:

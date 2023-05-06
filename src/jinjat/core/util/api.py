@@ -1,13 +1,16 @@
+import typing
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, List
 
+from starlette.exceptions import HTTPException as StarletteHttpException
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, ValidationError
 from starlette.applications import Starlette
 from starlette.requests import Request
 from starlette.responses import HTMLResponse, Response, JSONResponse
-
+from starlette.staticfiles import StaticFiles, PathLike
+from starlette.types import Scope
 
 DBT_PROJECT_HEADER = 'x-dbt-project-version'
 DBT_PROJECT_NAME = 'x-dbt-project-name'
@@ -185,4 +188,27 @@ def register_jsonapi_exception_handlers(app: Starlette):
     app.add_exception_handler(Exception, _serialize_error)
     app.add_exception_handler(HTTPException, _serialize_error)
 
+def extract_host(scope: dict):
+    for header in scope.get('headers'):
+        if header[0].lower() == 'host':
+            return header[0]
+    return "/"
+
+
+class StaticFilesWithFallbackIndex(StaticFiles):
+
+    def __init__(self, *, fallback_home_page_response : typing.Callable[[Scope], JSONResponse], directory: typing.Optional[PathLike] = None, packages: typing.Optional[
+        typing.List[typing.Union[str, typing.Tuple[str, str]]]
+    ] = None, html: bool = False, check_dir: bool = True) -> None:
+        super().__init__(directory=directory, packages=packages, html=html, check_dir=check_dir)
+        self.fallback_home_page_response = fallback_home_page_response
+
+    async def get_response(self, path: str, scope: Scope) -> Response:
+        response = None
+        try:
+            response = await super().get_response(path, scope)
+        except StarletteHttpException as e:
+            if e.status_code == 404 and path == '.':
+                return JSONResponse(self.fallback_home_page_response(scope))
+        return response
 

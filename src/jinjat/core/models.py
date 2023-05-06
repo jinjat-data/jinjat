@@ -22,11 +22,11 @@ JSON_COLUMNS_QUERY_PARAM = '_json_columns'
 
 
 class CORS(BaseModel):
-    allowed_origins: Optional[str]
+    allowed_origins: Optional[List[str]]
 
 
 class JinjatProjectConfig(BaseModel):
-    cors: Optional[CORS] = CORS(allowed_origins="*")
+    cors: Optional[CORS] = CORS(allowed_origins=["*"])
     max_limit: Optional[int] = 50000
     default_limit: Optional[int] = 500
     refine: Optional[dict]
