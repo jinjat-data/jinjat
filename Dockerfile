@@ -14,3 +14,6 @@ COPY . .
 # Install again, now that we've copied the jinjat package files. Otherwise,
 # Jinjat itself won't be installed.
 RUN poetry install --with test
+
+ENTRYPOINT ["poetry", "run", "jinjat"]
+EXPOSE 8581

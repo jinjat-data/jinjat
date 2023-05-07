@@ -5,7 +5,7 @@ services:
     platform: linux/amd64
     build:
       context: ../
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     volumes:
       # Host source code directory
       - ../:/app/

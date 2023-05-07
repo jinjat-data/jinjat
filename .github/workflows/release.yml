@@ -88,5 +88,5 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
           tags: "latest"
-          dockerfile: "Dockerfile.dev"
-          platforms: linux/amd64,linux/arm64,linux/arm64v8
+          dockerfile: "Dockerfile"
+          platforms: linux/amd64,linux/arm64
