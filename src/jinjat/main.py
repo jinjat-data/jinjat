@@ -229,7 +229,6 @@ def streamlit(
 
 
 def run_server(host="localhost", port=8581):
-    app.state.test = 1
     uvicorn.run(
         "jinjat.core.server:app",
         host=host,

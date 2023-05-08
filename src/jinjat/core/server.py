@@ -61,7 +61,8 @@ def unmount_app(new_app: FastAPI):
     if existing_apps is not None:
         app.routes.remove(existing_apps)
 
-def mount_app(app : FastAPI, project):
+
+def mount_app(app: FastAPI, project):
     config = get_jinjat_project_config(project.project_root)
 
     app.add_middleware(
@@ -138,11 +139,14 @@ def mount_app(app : FastAPI, project):
             "options": dbt_target.dict()
         }))
 
+
 """Register default project, ugly (using envs?) but works. This will parse the project on disk and load it into memory"""
 if SERVER_OPT in os.environ:
     dbt_target = DbtTarget.parse_raw(os.environ[SERVER_OPT])
     project = app.state.dbt_project_container.add_project(dbt_target)
     mount_app(app, project)
+else:
+    logger().warning(f"Unable to find {SERVER_OPT} environment variable")
 
 
 # We use ambient reinitialization based on TTL now

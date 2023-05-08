@@ -74,16 +74,3 @@ pip install jinjat[playground]
 
 Jinjat Playground is a Streamlit app that lets you develop APIs in your browser.
 Once you write the template, you can save it to your dbt project as an analysis and expose the API.
-
-### [Refine.dev](https://refine.dev) Integration
-
-#### Installation
-
-```commandline
-pip install jinjat[refine]
-```
-
-Jinjat Refine integration creates a Refine app from your OpenAPI spec 
-
-
-> Jinjat is a fork of [dbt-osmosis](https://github.com/z3z1ma/dbt-osmosis)
