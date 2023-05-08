@@ -64,13 +64,15 @@ def shared_single_project_opts(func: Callable) -> Callable:
     @click.option(
         "--project-dir",
         type=click.Path(exists=True, dir_okay=True, file_okay=False),
+        envvar="DBT_PROJECT_DIR",
         default=str(Path.cwd()),
         help="Which directory to look in for the dbt_project.yml file. Default is the current working directory and its parents.",
     )
     @click.option(
         "--profiles-dir",
+        envvar="DBT_PROFILES_DIR",
         type=click.Path(exists=True, dir_okay=True, file_okay=False),
-        help="Which directory to look in for the profiles.yml file. Defaults to ~/.dbt",
+        help="Which directory to look in for the profiles.yml file. If not set, dbt will look in the current working directory first, then HOME/.dbt/",
     )
     @click.option(
         "-t",
@@ -119,8 +121,10 @@ def generate(
         target: Optional[str],
         vars: str
 ):
-    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=yaml.load(vars, Loader=yaml.Loader))
+    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target,
+                           vars=yaml.load(vars, Loader=yaml.Loader))
     compile_macro(dbt_target, macro, args, dry_run)
+
 
 @serve_project_opts
 @cli.command(context_settings=CONTEXT)
@@ -149,7 +153,8 @@ def serve(
 ) -> object:
     logger().info(f":water_wave: Executing jinjat for dbt project in {project_dir}")
 
-    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target, vars=yaml.load(vars, Loader=yaml.Loader), refine=refine)
+    dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target,
+                           vars=yaml.load(vars, Loader=yaml.Loader), refine=refine)
     os.environ[SERVER_OPT] = dbt_target.json()
 
     server = multiprocessing.Process(target=run_server, args=(host, port))

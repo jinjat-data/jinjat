@@ -15,5 +15,7 @@ COPY . .
 # Jinjat itself won't be installed.
 RUN poetry install --with test
 
-ENTRYPOINT ["poetry", "run", "jinjat"]
 EXPOSE 8581
+ENV JINJAT_HOST=0.0.0.0
+
+ENTRYPOINT ["poetry", "run", "jinjat"]
