@@ -71,7 +71,7 @@ def custom_openapi(project, config):
     return app.openapi_schema
 
 
-def mount_app(app: FastAPI, project, dbt_target : DbtTarget):
+def mount_app(app: FastAPI, project, dbt_target: DbtTarget):
     config = get_jinjat_project_config(project.project_root)
 
     app.add_middleware(
@@ -139,10 +139,12 @@ def mount_app(app: FastAPI, project, dbt_target : DbtTarget):
             "options": dbt_target.dict()
         }))
 
-def get_multi_tenant_app(target : DbtTarget):
+
+def get_multi_tenant_app(target: DbtTarget):
     project = app.state.dbt_project_container.add_project(target)
     mount_app(app, project, target)
     return app
+
 
 # We use ambient reinitialization based on TTL now
 # loop = asyncio.get_running_loop()

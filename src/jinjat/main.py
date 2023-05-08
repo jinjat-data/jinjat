@@ -128,18 +128,6 @@ def generate(
 @serve_project_opts
 @cli.command(context_settings=CONTEXT)
 @shared_single_project_opts
-def deploy(
-        project_dir: str,
-        profiles_dir: Optional[str],
-        target: Optional[str],
-        vars: str,
-):
-    pass
-
-
-@serve_project_opts
-@cli.command(context_settings=CONTEXT)
-@shared_single_project_opts
 @shared_server_opts
 def serve(
         project_dir: str,

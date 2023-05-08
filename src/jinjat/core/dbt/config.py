@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import (
     Optional, TypeVar,
 )
@@ -28,6 +29,10 @@ disable_tracking()
 fire_event = lambda e: None
 
 
+def default_profiles_dir(project_path) -> Path:
+    return project_path if (project_path / "profiles.yml").exists() else Path.home() / ".dbt"
+
+
 class ConfigInterface:
     """This mimic dbt-core args based interface for dbt-core
     class instantiation"""
@@ -43,7 +48,8 @@ class ConfigInterface:
     ):
         self.threads = threads
         self.target = target
-        self.profiles_dir = profiles_dir or default_profiles_dir()
+        self.profiles_dir = profiles_dir or default_profiles_dir(
+            Path(project_dir) if project_dir is not None else Path.cwd())
         self.project_dir = project_dir
         self.vars = vars  # json.dumps str
         self.dependencies = []
