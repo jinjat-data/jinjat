@@ -22,6 +22,7 @@ from jinjat.core.util.api import register_jsonapi_exception_handlers, rapidoc_ht
 from jinjat.core.util.filesystem import get_project_root
 
 SERVER_OPT = "SERVER_OPT"
+logger().warning(f"Hi2")
 
 app = FastAPI(redoc_url=None, docs_url=None)
 
@@ -62,6 +63,17 @@ def unmount_app(new_app: FastAPI):
         app.routes.remove(existing_apps)
 
 
+def custom_openapi(config):
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(title=project.project_name, version=project.config.version, routes=app.routes)
+    app.openapi_schema = openapi_schema
+    if config.openapi is not None:
+        always_merger.merge(app.openapi_schema.get('info'), config.openapi.get("info", {}))
+    return app.openapi_schema
+
+
 def mount_app(app: FastAPI, project):
     config = get_jinjat_project_config(project.project_root)
 
@@ -74,23 +86,15 @@ def mount_app(app: FastAPI, project):
         expose_headers=[DBT_PROJECT_HEADER, DBT_PROJECT_NAME]
     )
 
-    def custom_openapi():
-        if app.openapi_schema:
-            return app.openapi_schema
-
-        openapi_schema = get_openapi(title=project.project_name, version=project.config.version, routes=app.routes)
-        app.openapi_schema = openapi_schema
-        if config.openapi is not None:
-            always_merger.merge(app.openapi_schema.get('info'), config.openapi.get("info", {}))
-        return app.openapi_schema
-
     register_jsonapi_exception_handlers(app)
-
-    app.openapi = custom_openapi
+    app.openapi = lambda req: custom_openapi(config)
 
     analysis_app = create_analysis_apps(config, project)
 
-    logger().info("{} analysis found with `jinjat` config\n".format(len(analysis_app.routes)))
+    if len(analysis_app.routes) == 0:
+        logger().warning("Could not find any analysis found with `jinjat` config")
+    else:
+        logger().info(f"{len(analysis_app.routes)} analysis found with `jinjat` config")
 
     admin_app.router.add_route("/docs",
                                functools.partial(rapidoc_html,
@@ -139,6 +143,7 @@ def mount_app(app: FastAPI, project):
             "options": dbt_target.dict()
         }))
 
+logger().warning(f"Hi")
 
 """Register default project, ugly (using envs?) but works. This will parse the project on disk and load it into memory"""
 if SERVER_OPT in os.environ:
