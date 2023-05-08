@@ -21,9 +21,6 @@ from jinjat.core.util.api import register_jsonapi_exception_handlers, rapidoc_ht
     DBT_PROJECT_NAME, StaticFilesWithFallbackIndex, extract_host
 from jinjat.core.util.filesystem import get_project_root
 
-SERVER_OPT = "SERVER_OPT"
-logger().warning(f"Hi2")
-
 app = FastAPI(redoc_url=None, docs_url=None)
 
 dbt_container = DbtProjectContainer()
@@ -63,7 +60,7 @@ def unmount_app(new_app: FastAPI):
         app.routes.remove(existing_apps)
 
 
-def custom_openapi(config):
+def custom_openapi(project, config):
     if app.openapi_schema:
         return app.openapi_schema
 
@@ -74,7 +71,7 @@ def custom_openapi(config):
     return app.openapi_schema
 
 
-def mount_app(app: FastAPI, project):
+def mount_app(app: FastAPI, project, dbt_target : DbtTarget):
     config = get_jinjat_project_config(project.project_root)
 
     app.add_middleware(
@@ -87,7 +84,7 @@ def mount_app(app: FastAPI, project):
     )
 
     register_jsonapi_exception_handlers(app)
-    app.openapi = lambda req: custom_openapi(config)
+    app.openapi = lambda req: custom_openapi(project, config)
 
     analysis_app = create_analysis_apps(config, project)
 
@@ -115,7 +112,6 @@ def mount_app(app: FastAPI, project):
     if os.path.exists(project_static_files) and dbt_target.refine:
         static_files = StaticFiles(directory=project_static_files, html=True)
         static_files.all_directories = [project_static_files, default_refine_project]
-        main_directory = default_refine_project
     else:
         if os.path.exists(project_static_files):
             main_directory = project_static_files
@@ -143,16 +139,10 @@ def mount_app(app: FastAPI, project):
             "options": dbt_target.dict()
         }))
 
-logger().warning(f"Hi")
-
-"""Register default project, ugly (using envs?) but works. This will parse the project on disk and load it into memory"""
-if SERVER_OPT in os.environ:
-    dbt_target = DbtTarget.parse_raw(os.environ[SERVER_OPT])
-    project = app.state.dbt_project_container.add_project(dbt_target)
-    mount_app(app, project)
-else:
-    logger().warning(f"Unable to find {SERVER_OPT} environment variable")
-
+def get_multi_tenant_app(target : DbtTarget):
+    project = app.state.dbt_project_container.add_project(target)
+    mount_app(app, project, target)
+    return app
 
 # We use ambient reinitialization based on TTL now
 # loop = asyncio.get_running_loop()

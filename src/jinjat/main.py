@@ -1,6 +1,5 @@
 import functools
 import multiprocessing
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -13,7 +12,7 @@ from dbt.cli.option_types import YAML
 
 from jinjat.core.generator import compile_macro
 from jinjat.core.log_controller import logger
-from jinjat.core.server import DbtTarget, SERVER_OPT, app
+from jinjat.core.server import DbtTarget, get_multi_tenant_app
 
 CONTEXT = {"max_content_width": 800}
 
@@ -155,9 +154,8 @@ def serve(
 
     dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target,
                            vars=yaml.load(vars, Loader=yaml.Loader), refine=refine)
-    os.environ[SERVER_OPT] = dbt_target.json()
 
-    server = multiprocessing.Process(target=run_server, args=(host, port))
+    server = multiprocessing.Process(target=run_server, args=(host, port, dbt_target))
     server.start()
 
     import atexit
@@ -228,14 +226,15 @@ def streamlit(
     )
 
 
-def run_server(host="localhost", port=8581):
+def run_server(host="localhost", port=8581, target=DbtTarget):
     uvicorn.run(
-        "jinjat.core.server:app",
+        lambda: get_multi_tenant_app(target),
         host=host,
         port=port,
         log_level="info",
         reload=False,
         workers=1,
+        factory=True
     )
 
 

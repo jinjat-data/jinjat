@@ -19,9 +19,8 @@ def fal_wrapper():
     import os
     from jinjat.core.dbt.dbt_project import DbtTarget
     from jinjat.main import run_server
-    from jinjat.core.server import SERVER_OPT
 
     dbt_target = DbtTarget(project_dir='/data/sync/project', profiles_dir='/data/sync/profiles', target=target,
                            vars=dbt_vars, refine=refine)
-    os.environ[SERVER_OPT] = dbt_target.json()
+    a =  dbt_target.json()
     run_server("0.0.0.0", 5656)
