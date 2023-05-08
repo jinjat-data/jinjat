@@ -17,5 +17,6 @@ RUN poetry install --with test
 
 EXPOSE 8581
 ENV JINJAT_HOST=0.0.0.0
+ENV SERVER_OPT
 
 ENTRYPOINT ["poetry", "run", "jinjat"]
