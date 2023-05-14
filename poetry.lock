@@ -59,22 +59,23 @@ python-versions = "*"
 
 [[package]]
 name = "altair"
-version = "4.2.2"
-description = "Altair: A declarative statistical visualization library for Python."
+version = "5.0.0"
+description = "Vega-Altair: A declarative statistical visualization library for Python."
 category = "main"
 optional = true
 python-versions = ">=3.7"
 
 [package.dependencies]
-entrypoints = "*"
 jinja2 = "*"
 jsonschema = ">=3.0"
 numpy = "*"
 pandas = ">=0.18"
 toolz = "*"
+typing-extensions = {version = ">=4.0.1", markers = "python_version < \"3.11\""}
 
 [package.extras]
-dev = ["black", "docutils", "ipython", "flake8", "pytest", "sphinx", "mistune (<2.0.0)", "m2r", "vega-datasets", "recommonmark"]
+dev = ["black (<24)", "hatch", "ipython", "m2r", "mypy", "pandas-stubs", "pytest", "pytest-cov", "ruff", "types-jsonschema", "types-setuptools", "vega-datasets", "vl-convert-python"]
+doc = ["docutils", "geopandas", "jinja2", "myst-parser", "numpydoc", "pillow", "pydata-sphinx-theme", "sphinx", "sphinx-copybutton", "sphinx-design"]
 
 [[package]]
 name = "anyio"
@@ -256,7 +257,7 @@ python-versions = "~=3.7"
 
 [[package]]
 name = "certifi"
-version = "2022.12.7"
+version = "2023.5.7"
 description = "Python package for providing Mozilla's CA Bundle."
 category = "main"
 optional = false
@@ -469,7 +470,7 @@ werkzeug = ">=1,<3"
 
 [[package]]
 name = "dbt-duckdb"
-version = "1.5.0"
+version = "1.5.1"
 description = "The duckdb adapter plugin for dbt (data build tool)"
 category = "main"
 optional = true
@@ -565,14 +566,6 @@ optional = true
 python-versions = "*"
 
 [[package]]
-name = "entrypoints"
-version = "0.4"
-description = "Discover and load entry points from installed packages."
-category = "main"
-optional = true
-python-versions = ">=3.6"
-
-[[package]]
 name = "exceptiongroup"
 version = "1.1.1"
 description = "Backport of PEP 654 (exception groups)"
@@ -654,7 +647,7 @@ testing = ["covdefaults (>=2.3)", "coverage (>=7.2.3)", "diff-cover (>=7.5)", "p
 
 [[package]]
 name = "fonttools"
-version = "4.39.3"
+version = "4.39.4"
 description = "Tools to manipulate font files"
 category = "main"
 optional = true
@@ -764,20 +757,6 @@ multidict = "*"
 
 [package.extras]
 protobuf = ["protobuf (>=3.15.0)"]
-
-[[package]]
-name = "gunicorn"
-version = "20.1.0"
-description = "WSGI HTTP Server for UNIX"
-category = "main"
-optional = false
-python-versions = ">=3.5"
-
-[package.extras]
-eventlet = ["eventlet (>=0.24.1)"]
-gevent = ["gevent (>=1.4.0)"]
-setproctitle = ["setproctitle"]
-tornado = ["tornado (>=0.2)"]
 
 [[package]]
 name = "h11"
@@ -1263,7 +1242,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "mypy"
-version = "1.2.0"
+version = "1.3.0"
 description = "Optional static typing for Python"
 category = "dev"
 optional = false
@@ -1414,11 +1393,11 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "orjson"
-version = "3.8.11"
+version = "3.8.12"
 description = "Fast, correct Python JSON library supporting dataclasses, datetimes, and numpy"
 category = "main"
 optional = false
-python-versions = ">= 3.7"
+python-versions = ">=3.7"
 
 [[package]]
 name = "packaging"
@@ -1530,14 +1509,14 @@ tests = ["check-manifest", "coverage", "defusedxml", "markdown2", "olefile", "pa
 
 [[package]]
 name = "platformdirs"
-version = "3.5.0"
+version = "3.5.1"
 description = "A small Python package for determining appropriate platform-specific dirs, e.g. a \"user data dir\"."
 category = "main"
 optional = false
 python-versions = ">=3.7"
 
 [package.extras]
-docs = ["furo (>=2023.3.27)", "proselint (>=0.13)", "sphinx-autodoc-typehints (>=1.23,!=1.23.4)", "sphinx (>=6.1.3)"]
+docs = ["furo (>=2023.3.27)", "proselint (>=0.13)", "sphinx-autodoc-typehints (>=1.23,!=1.23.4)", "sphinx (>=6.2.1)"]
 test = ["appdirs (==1.4.4)", "covdefaults (>=2.3)", "pytest-cov (>=4)", "pytest-mock (>=3.10)", "pytest (>=7.3.1)"]
 
 [[package]]
@@ -1661,7 +1640,7 @@ plugins = ["importlib-metadata"]
 
 [[package]]
 name = "pyjwt"
-version = "2.6.0"
+version = "2.7.0"
 description = "JSON Web Token implementation in Python"
 category = "main"
 optional = false
@@ -2188,14 +2167,14 @@ jupyter = ["ipywidgets (>=7.5.1,<9)"]
 
 [[package]]
 name = "ruamel.yaml"
-version = "0.17.22"
+version = "0.17.26"
 description = "ruamel.yaml is a YAML parser/emitter that supports roundtrip preservation of comments, seq/map flow style, and map key order"
 category = "main"
 optional = false
 python-versions = ">=3"
 
 [package.dependencies]
-"ruamel.yaml.clib" = {version = ">=0.2.6", markers = "platform_python_implementation == \"CPython\" and python_version < \"3.11\""}
+"ruamel.yaml.clib" = {version = ">=0.2.7", markers = "platform_python_implementation == \"CPython\" and python_version < \"3.12\""}
 
 [package.extras]
 docs = ["ryd"]
@@ -2314,6 +2293,17 @@ description = "Sniff out which async library your code is running under"
 category = "main"
 optional = false
 python-versions = ">=3.7"
+
+[[package]]
+name = "sqlglot"
+version = "12.3.0"
+description = "An easily customizable SQL parser and transpiler"
+category = "main"
+optional = false
+python-versions = "*"
+
+[package.extras]
+dev = ["autoflake", "black", "duckdb", "isort", "mypy (>=0.990)", "pandas", "pyspark", "python-dateutil", "pdoc", "pre-commit"]
 
 [[package]]
 name = "sqlparse"
@@ -2759,7 +2749,7 @@ python-versions = "*"
 
 [[package]]
 name = "websockets"
-version = "11.0.2"
+version = "11.0.3"
 description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
 category = "main"
 optional = false
@@ -2767,7 +2757,7 @@ python-versions = ">=3.7"
 
 [[package]]
 name = "werkzeug"
-version = "2.3.3"
+version = "2.3.4"
 description = "The comprehensive WSGI web application library."
 category = "main"
 optional = false
@@ -2818,8 +2808,8 @@ playground = ["streamlit", "streamlit-ace", "graphviz", "pydot", "streamlit-agra
 
 [metadata]
 lock-version = "1.1"
-python-versions = ">=3.8,<4"
-content-hash = "b90974f69c2fb7e1b5b4c40783352807dfa14366540d78f152eda07bf2fe0b92"
+python-versions = ">=3.8.1,<4"
+content-hash = "742e0d3984297749be5054caffba01cbb8726f6d25c5ea107a9b7df71eb67392"
 
 [metadata.files]
 agate = []
@@ -2864,7 +2854,6 @@ dill = []
 distlib = []
 duckcli = []
 duckdb = []
-entrypoints = []
 exceptiongroup = []
 fal-serverless = []
 fastapi = []
@@ -2879,7 +2868,6 @@ graphviz = []
 grpc-interceptor = []
 grpcio = []
 grpclib = []
-gunicorn = []
 h11 = []
 h2 = []
 hologram = []
@@ -2978,6 +2966,7 @@ sigtools = []
 six = []
 smmap = []
 sniffio = []
+sqlglot = []
 sqlparse = []
 starlette = []
 streamlit = []
