@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "jinjat"
-version = "0.5"
+version = "0.6"
 description = "A low-code data application framework that uses dbt Core and OpenAPI"
 authors = ["buremba <emrekabakci@gmail.com>"]
 license = "Apache 2.0"

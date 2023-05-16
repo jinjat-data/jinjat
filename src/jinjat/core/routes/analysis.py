@@ -111,7 +111,7 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
 
     async def custom_openapi(req: Request) -> JSONResponse:
         extract_path = req.query_params.get("jmespath")
-        servers = [{"url": str(req.url).strip('/openapi.json')}]
+        servers = [{"url": f"{req.scope.get('scheme')}://{req.scope.get('server')[0]}:{req.scope.get('server')[1]}"}]
 
         if api.openapi_schema:
             api.openapi_schema['servers'] = servers
