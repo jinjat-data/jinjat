@@ -1,6 +1,7 @@
 import functools
 import json
 import re
+from urllib.parse import urlparse
 from copy import deepcopy
 from pathlib import Path
 from typing import List, Optional, Callable
@@ -111,7 +112,9 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
 
     async def custom_openapi(req: Request) -> JSONResponse:
         extract_path = req.query_params.get("jmespath")
-        servers = [{"url": f"{req.scope.get('scheme')}://{req.scope.get('server')[0]}:{req.scope.get('server')[1]}"}]
+        scheme = req.headers.get('x-forwarded-proto')
+        url = str(req.url.replace(scheme=scheme or req.url.scheme)).strip('/openapi.json')
+        servers = [{"url": url}]
 
         if api.openapi_schema:
             api.openapi_schema['servers'] = servers
