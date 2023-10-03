@@ -1,6 +1,6 @@
 import asyncio
-import functools
 import json
+import os.path
 from datetime import datetime
 from typing import Optional, Union
 
@@ -16,10 +16,11 @@ from jinjat.core.exceptions import ExecuteSqlFailure
 from jinjat.core.models import JinjatExecutionResult, DbtAdapterExecutionResult, generate_dbt_context_from_request, \
     DbtQueryRequestContext, JSON_COLUMNS_QUERY_PARAM
 from jinjat.core.util.api import JinjatErrorContainer, JinjatError, JinjatErrorCode, DBT_PROJECT_HEADER, \
-    DBT_PROJECT_NAME
+    DBT_PROJECT_NAME, JSONAPIException
 from jinjat.core.util.jmespath import extract_jmespath
 
 app = FastAPI(redoc_url=None, docs_url=None, title="Admin API", version="0.1")
+
 
 class JinjatCompileResult(BaseModel):
     result: str
@@ -32,7 +33,7 @@ class JinjatRefreshProjectResult(BaseModel):
 def jinjat_project_not_found_error():
     return JinjatErrorContainer(
         status_code=status.HTTP_400_BAD_REQUEST,
-        error=JinjatError(code=JinjatErrorCode.ProjectNotFound, error="Project could not be found"))
+        errors=[JinjatError(code=JinjatErrorCode.ProjectNotFound, message="Project could not be found")])
 
 
 class DbtAdhocQueryRequest(BaseModel):
@@ -56,7 +57,6 @@ async def execute_manifest_query(
 
     if project is None:
         raise jinjat_project_not_found_error()
-
 
     manifest_file = project.dbt.writable_manifest().to_dict()
     result = extract_jmespath(jmespath, manifest_file, project)
@@ -88,22 +88,36 @@ async def execute_sql(
 
 
 async def _execute_jinjat_query(project: DbtProject, execute_function, query: str, ctx: DbtQueryRequestContext,
-                                limit: Optional[int], fetch: bool = True) -> DbtAdapterExecutionResult:
+                                limit: Optional[int], fetch: bool = True,
+                                include_total: bool = False) -> DbtAdapterExecutionResult:
     if limit is not None:
-        query = project.execute_macro('limit_query', {"sql": query, "limit": limit})
+        final_query = project.execute_macro('limit_query', {"sql": query, "limit": limit})
+    else:
+        final_query = query
+
+    loop = asyncio.get_running_loop()
 
     try:
-        loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(
-            None, project.fn_threaded_conn(execute_function, query, ctx, fetch)
+            None, project.fn_threaded_conn(execute_function, final_query, ctx, fetch)
         )
+        if include_total:
+            if limit is not None and len(result.table.rows) < limit:
+                size = len(result.table.rows)
+            else:
+                total_result_query = project.execute_macro('get_row_count_query', {"sql": query})
+                total_result_response = await loop.run_in_executor(
+                    None, project.fn_threaded_conn(execute_function, total_result_query, ctx, True))
+                size = int(total_result_response.table.rows[0]['count'])
+            result.total_rows = size
     except ExecuteSqlFailure as execution_err:
         raise JinjatErrorContainer(
             status_code=status.HTTP_400_BAD_REQUEST,
-            error=JinjatError(
+            errors=[JinjatError(
                 code=JinjatErrorCode.ExecuteSqlFailure,
+                message=str(execution_err.dbt_exception),
                 error=execution_err.to_model()
-            )
+            )]
         )
 
     return result
@@ -145,10 +159,10 @@ async def compile_sql(
     except Exception as compile_err:
         raise JinjatErrorContainer(
             status_code=status.HTTP_400_BAD_REQUEST,
-            error=JinjatError(
+            errors=[JinjatError(
                 code=JinjatErrorCode.CompileSqlFailure,
-                error=str(compile_err),
-            )
+                message=str(compile_err),
+            )]
         )
 
     return JinjatCompileResult(result=compiled_query)
@@ -179,14 +193,14 @@ async def refresh(
     if not reset and old_target == new_target:
         # Async (target same)
         if project.mutex.acquire(blocking=False):
-            background_tasks.add_task(_reset, project, reset, old_target, new_target)
+            background_tasks.add_task(refresh_project, project, reset, old_target, new_target)
             return JinjatRefreshProjectResult(result="Initializing project parsing")
         else:
             return JinjatRefreshProjectResult(result="Currently re-parsing project")
     else:
         # Sync (target changed or reset is true)
         if project.mutex.acquire(blocking=old_target != new_target):
-            rv = _reset(project, reset, old_target, new_target)
+            rv = refresh_project(project, reset, old_target, new_target)
             if isinstance(rv, JinjatErrorContainer):
                 response.status_code = status.HTTP_500_INTERNAL_SERVER_ERROR
             return rv
@@ -194,7 +208,7 @@ async def refresh(
             return JinjatRefreshProjectResult(result="Currently re-parsing project")
 
 
-def _reset(
+def refresh_project(
         project: DbtProject, reset: bool, old_target: str, new_target: str
 ) -> Union[JinjatRefreshProjectResult, JinjatErrorContainer]:
     """Use a mutex to ensure only a single reset can be running for any
@@ -207,10 +221,10 @@ def _reset(
         project.args.target = old_target
         rv = JinjatErrorContainer(
             status_code=status.HTTP_400_BAD_REQUEST,
-            error=JinjatError(
+            errors=[JinjatError(
                 code=JinjatErrorCode.ProjectParseFailure,
-                error=str(reparse_err),
-            )
+                message=str(reparse_err),
+            )]
         )
     else:
         project._version += 1

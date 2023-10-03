@@ -11,6 +11,7 @@ from typing import (
 import agate
 from dbt.contracts.connection import AdapterResponse
 from dbt.contracts.graph.manifest import ManifestNode
+from fastapi.openapi.models import Parameter, Schema
 from jsonschema import validate
 from openapi_schema_pydantic import OpenAPI
 from openapi_schema_pydantic import Operation
@@ -55,15 +56,27 @@ class DbtQueryRequestContext(BaseModel):
         return self.query.get('_debug') is not None
 
 
+class RequestSchema(BaseModel):
+    parameters: Optional[List[Parameter]]
+    body: Optional[Schema]
+    transform: Optional[str]
+
+
+class ResponseSchema(BaseModel):
+    content: Optional[Schema]
+    status: Optional[int] = 200
+    description: Optional[str] = "Success"
+    transform: Optional[str]
+
+
 class JinjatAnalysisConfig(BaseModel):
     cors: Optional[bool]
     openapi: Optional[Operation] = Operation()
     method: Optional[str]
     fetch: Optional[bool] = True
-    request_model: Optional[str]
 
-    transform_response: Optional[str]
-    transform_request: Optional[str]
+    request: Optional[RequestSchema] = RequestSchema()
+    response: Optional[ResponseSchema] = ResponseSchema()
 
 
 async def generate_dbt_context_from_request(request: Request, openapi: dict,
@@ -82,12 +95,14 @@ class DbtAdapterExecutionResult:
     """Interface for execution results, this keeps us 1 layer removed from dbt interfaces which may change"""
 
     def __init__(
-            self, adapter_response: AdapterResponse, table: agate.Table, raw_sql: str, compiled_sql: str
+            self, adapter_response: AdapterResponse, table: agate.Table, raw_sql: str, compiled_sql: str,
+            total_rows: Optional[int] = None,
     ) -> None:
         self.adapter_response = adapter_response
         self.table = table
         self.raw_sql = raw_sql
         self.compiled_sql = compiled_sql
+        self.total_rows = total_rows
 
 
 def _convert_table_to_dict(table: agate.Table, json_columns: List[str]):

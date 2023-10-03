@@ -1,7 +1,7 @@
+import asyncio
 import functools
 import multiprocessing
 import subprocess
-import sys
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -13,13 +13,16 @@ from dbt.cli.option_types import YAML
 from jinjat.core.generator import compile_macro
 from jinjat.core.log_controller import logger
 from jinjat.core.server import DbtTarget, get_multi_tenant_app
+from jinjat.core.util.telemetry import record
 
 CONTEXT = {"max_content_width": 800}
+import sys
 
 
 @click.group()
 @click.version_option()
 def cli():
+    # asyncio.run(record(sys.argv[1], {"args": ' '.join(sys.argv[2:])}))
     pass
 
 

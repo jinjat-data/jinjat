@@ -1,8 +1,12 @@
+import functools
+import os
 import typing
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, List
 
+from dbt.exceptions import InvalidConnectionError
+from fastapi.openapi.models import Schema
 from starlette.exceptions import HTTPException as StarletteHttpException
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel, ValidationError
@@ -12,8 +16,12 @@ from starlette.responses import HTMLResponse, Response, JSONResponse
 from starlette.staticfiles import StaticFiles, PathLike
 from starlette.types import Scope
 
+from jinjat.core.dbt.dbt_project import DbtProject
+from jinjat.core.log_controller import logger
+
 DBT_PROJECT_HEADER = 'x-dbt-project-version'
 DBT_PROJECT_NAME = 'x-dbt-project-name'
+
 
 def get_human_readable_error(validation_error: ValidationError) -> str:
     error_str = "Validation errors:\n"
@@ -23,6 +31,7 @@ def get_human_readable_error(validation_error: ValidationError) -> str:
 
 
 class JinjatErrorCode(int, Enum):
+    Unknown = -2
     FailedToReachServer = -1
     CompileSqlFailure = 1
     ExecuteSqlFailure = 2
@@ -35,12 +44,8 @@ class JinjatErrorCode(int, Enum):
 
 class JinjatError(BaseModel):
     code: JinjatErrorCode
-    error: Any
-
-
-class JinjatErrorContainer(HTTPException):
-    def __init__(self, status_code: int, error: JinjatError) -> None:
-        super().__init__(status_code, error.dict())
+    message: str
+    error: typing.Optional[Any] = None
 
 
 @dataclass
@@ -48,7 +53,8 @@ class CustomButton:
     name: str
     url: str
 
-async def rapidoc_html(custom_button: CustomButton, request: Request) -> HTMLResponse:
+
+async def rapidoc_html(custom_button: CustomButton, package_name, request: Request) -> HTMLResponse:
     html = f"""
         <!doctype html>
         <html>
@@ -78,6 +84,7 @@ async def rapidoc_html(custom_button: CustomButton, request: Request) -> HTMLRes
         </html>
     """
     return HTMLResponse(html)
+
 
 async def elements_html(custom_button: CustomButton, request: Request) -> HTMLResponse:
     html = f"""
@@ -123,7 +130,7 @@ class JSONAPIResponse(JSONResponse):
 class JSONAPIException(HTTPException):
     """ HTTP exception with json:api representation. """
 
-    def __init__(self, status_code: int, detail: str = None, errors: List[dict] = None) -> None:
+    def __init__(self, status_code: int, detail: str = None, errors: List[BaseModel] = None) -> None:
         """
         Base json:api exception class.
         :param status_code: HTTP status code
@@ -150,7 +157,12 @@ class JSONAPIException(HTTPException):
         """
         super().__init__(status_code, detail=detail)
         self.errors = errors or []
-        self.errors.append({'detail': self.detail})
+
+
+class JinjatErrorContainer(JSONAPIException):
+    def __init__(self, status_code: int, errors: List[JinjatError]) -> None:
+        message = '\n'.join([error.message for error in errors])
+        super().__init__(status_code, message, errors)
 
 
 def register_jsonapi_exception_handlers(app: Starlette):
@@ -160,26 +172,26 @@ def register_jsonapi_exception_handlers(app: Starlette):
     """
 
     def serialize_error(exc: Exception) -> JSONAPIResponse:
-        """
-        Serializes exception according to the json:api spec
-        and returns the equivalent :class:`JSONAPIResponse`.
-        """
-        if isinstance(exc, JinjatErrorContainer):
-            status_code = exc.status_code
-            errors = [exc.detail]
         if isinstance(exc, JSONAPIException):
             status_code = exc.status_code
+            message = exc.detail
             errors = exc.errors
         elif isinstance(exc, HTTPException):
             status_code = exc.status_code
-            errors = [{'detail': exc.detail}]
+            message = exc.detail
+            errors = [JinjatError(code=JinjatErrorCode.Unknown, message=exc.detail)]
         else:
             status_code = 500
-            errors = [{'detail': 'Internal server error'}]
+            message = 'Internal server error'
+            errors = [JinjatError(code=JinjatErrorCode.Unknown, message='Internal server error')]
+            logger().exception(f"Unexpected exception while processing error", exc_info=exc)
 
+        error_list = [error.dict() for error in errors]
         error_body = {
-            'errors': errors
+            'errors': error_list,
+            'message': message
         }
+
         return JSONAPIResponse(status_code=status_code, content=error_body)
 
     async def _serialize_error(request: Request, exc: Exception) -> Response:
@@ -187,6 +199,7 @@ def register_jsonapi_exception_handlers(app: Starlette):
 
     app.add_exception_handler(Exception, _serialize_error)
     app.add_exception_handler(HTTPException, _serialize_error)
+
 
 def extract_host(scope: dict):
     for header in scope.get('headers'):
@@ -197,18 +210,63 @@ def extract_host(scope: dict):
 
 class StaticFilesWithFallbackIndex(StaticFiles):
 
-    def __init__(self, *, fallback_home_page_response : typing.Callable[[Scope], JSONResponse], directory: typing.Optional[PathLike] = None, packages: typing.Optional[
-        typing.List[typing.Union[str, typing.Tuple[str, str]]]
-    ] = None, html: bool = False, check_dir: bool = True) -> None:
+    def __init__(self, *, fallback_home_page_response: typing.Callable[[Scope], JSONResponse],
+                 directory: typing.Optional[PathLike] = None, packages: typing.Optional[
+                typing.List[typing.Union[str, typing.Tuple[str, str]]]
+            ] = None, html: bool = False, check_dir: bool = True, enable_nextjs_route: bool = False) -> None:
         super().__init__(directory=directory, packages=packages, html=html, check_dir=check_dir)
         self.fallback_home_page_response = fallback_home_page_response
+        self.enable_nextjs_route = enable_nextjs_route
+
+    def lookup_path(self, path: str) -> typing.Tuple[str, typing.Optional[os.stat_result]]:
+        full_path, file_stat = super().lookup_path(path)
+        if file_stat is None and self.enable_nextjs_route:
+            full_path, file_stat = super().lookup_path(f'${path}.html')
+            if file_stat is None:
+                paths = path.split('/')
+                full_path, file_stat = super().lookup_path(f'${paths[0:-1]}/[[${paths[-2]}]]')
+
+        return full_path, file_stat
 
     async def get_response(self, path: str, scope: Scope) -> Response:
         response = None
         try:
             response = await super().get_response(path, scope)
         except StarletteHttpException as e:
-            if e.status_code == 404 and path == '.':
-                return JSONResponse(self.fallback_home_page_response(scope))
+            if e.status_code == 404:
+                if path == '.':
+                    response = JSONResponse(self.fallback_home_page_response(scope))
+                elif self.enable_nextjs_route:
+                    response = await super().get_response('404.html', scope)
+
         return response
 
+
+def convert_openapi_ref(default_project: str, cls, value, parent, model, _):
+    values = value.split(".", 3)
+    if len(values) == 1:
+        name = values[0]
+        package_name = default_project
+        resource_type = "analysis"
+    elif len(values) == 2:
+        resource_type = values[0]
+        package_name = default_project
+        name = values[1]
+    elif len(values) == 3:
+        package_name = values[0]
+        resource_type = values[1]
+        name = values[2]
+    else:
+        raise Exception(f"Unknown reference ${values}")
+
+    return f"#/components/schemas/{resource_type}.{package_name}.{name}"
+
+
+def register_openapi_validators(project: DbtProject):
+    original_validators = Schema.__fields__.get("ref").post_validators or []
+    Schema.__fields__.get("ref").post_validators = original_validators + [
+        functools.partial(convert_openapi_ref, project.project_name)]
+
+
+def unregister_openapi_validators():
+    Schema.__fields__.get("ref").post_validators = []

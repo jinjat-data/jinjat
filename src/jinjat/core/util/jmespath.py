@@ -6,7 +6,7 @@ from jmespath.exceptions import ParseError, JMESPathError
 from starlette import status
 
 from jinjat.core.dbt.dbt_project import DbtProject
-from jinjat.core.util.api import JinjatErrorContainer, JinjatError, JinjatErrorCode
+from jinjat.core.util.api import JinjatErrorContainer, JinjatError, JinjatErrorCode, JSONAPIException
 
 
 class CustomFunctions(jmespath.functions.Functions):
@@ -50,7 +50,7 @@ def extract_jmespath(query: Optional[str], data: dict, dbt : DbtProject):
     except CompilationError as e:
         raise JinjatErrorContainer(
             status_code=status.HTTP_400_BAD_REQUEST,
-            error=JinjatError(code=JinjatErrorCode.JmesPathParseError, error=f"{e}"))
+            errors=[JinjatError(code=JinjatErrorCode.JmesPathParseError, error=f"{e}")])
 
     try:
         jmespath_compile = jmespath.compile(compiled_expression.compiled_sql)
@@ -58,5 +58,5 @@ def extract_jmespath(query: Optional[str], data: dict, dbt : DbtProject):
     except JMESPathError as e:
         raise JinjatErrorContainer(
             status_code=status.HTTP_400_BAD_REQUEST,
-            error=JinjatError(code=JinjatErrorCode.JmesPathParseError, error=f"{e}"))
+            errors=[JinjatError(code=JinjatErrorCode.JmesPathParseError, error=f"{e}")])
     return current_data

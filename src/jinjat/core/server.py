@@ -1,6 +1,8 @@
 import asyncio
 import functools
 import os
+import sys
+from typing import Optional
 
 import yaml
 from deepmerge import always_merger
@@ -11,17 +13,19 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
+from watchdog.events import FileModifiedEvent, FileSystemEvent
 
 from jinjat.core.dbt.dbt_project import DbtProjectContainer, DbtProject, DbtTarget
 from jinjat.core.log_controller import logger
 from jinjat.core.models import JinjatProjectConfig
 from jinjat.core.routes.admin import app as admin_app
 from jinjat.core.routes.analysis import create_analysis_apps
+from jinjat.core.util import filesystem
 from jinjat.core.util.api import register_jsonapi_exception_handlers, rapidoc_html, CustomButton, DBT_PROJECT_HEADER, \
     DBT_PROJECT_NAME, StaticFilesWithFallbackIndex, extract_host
 from jinjat.core.util.filesystem import get_project_root
 
-app = FastAPI(redoc_url=None, docs_url=None)
+app = FastAPI(redoc_url=None, docs_url=None, openapi_url=None)
 
 dbt_container = DbtProjectContainer()
 app.state.dbt_project_container = dbt_container
@@ -71,7 +75,34 @@ def custom_openapi(project, config):
     return app.openapi_schema
 
 
-def mount_app(app: FastAPI, project, dbt_target: DbtTarget):
+def generate_app(config: JinjatProjectConfig, project: DbtProject, changed_file: Optional[str] = None) -> FastAPI:
+    analysis_app = create_analysis_apps(config, project)
+
+    num_analyses = sum([len(sub_app.routes) for sub_app in analysis_app.routes[1:]])
+
+    if len(analysis_app.routes) == 0:
+        logger().warning("Could not find any analysis found with `jinjat` config")
+    else:
+        logger().info(f"{num_analyses} analysis found with `jinjat` config")
+
+    if changed_file is not None:
+        project.safe_parse_project()
+        unmount_app(analysis_app)
+
+    return analysis_app
+
+
+def homepage_without_ui(host, project: DbtProject, dbt_target: DbtTarget) -> dict:
+    return {
+        "analysis_api_docs": f"{host}{project.config.project_name}/docs" if len(app.routes) > 2 else None,
+        "dependencies": [route.path for route in app.routes[2].routes[2:]],
+        "admin_api_docs": f"{host}admin/docs",
+        "magic": "https://jinj.at",
+        "options": dbt_target.dict()
+    }
+
+
+def mount_app(app: FastAPI, project: DbtProject, dbt_target: DbtTarget):
     config = get_jinjat_project_config(project.project_root)
 
     app.add_middleware(
@@ -84,26 +115,30 @@ def mount_app(app: FastAPI, project, dbt_target: DbtTarget):
     )
 
     register_jsonapi_exception_handlers(app)
-    app.openapi = lambda req: custom_openapi(project, config)
+    app.openapi = lambda: custom_openapi(project, config)
 
-    analysis_app = create_analysis_apps(config, project)
+    current_app = generate_app(config, project)
 
-    if len(analysis_app.routes) == 0:
-        logger().warning("Could not find any analysis found with `jinjat` config")
-    else:
-        logger().info(f"{len(analysis_app.routes)} analysis found with `jinjat` config")
+    def watch(event: FileSystemEvent):
+        logger().info(f"Reloading project, file changed: {event.src_path}")
+        project.safe_parse_project(reinit=True)
+        logger().info(f"Updating the endpoints")
+        new_app = generate_app(config, project, event.src_path)
+        for sub_app in current_app.routes[1:]:
+            current_app.routes.remove(sub_app)
+        for sub_app in new_app.routes[1:]:
+            current_app.mount(sub_app.path, sub_app)
+        logger().info(f"Server is updated")
+
+    filesystem.watch(project.project_root, watch)
 
     admin_app.router.add_route("/docs",
                                functools.partial(rapidoc_html,
-                                                 CustomButton("Analysis APIs", f"/{project.config.version}/docs")),
+                                                 CustomButton("Analysis APIs", f"/{project.project_name}/docs"),
+                                                 project.project_name),
                                include_in_schema=False)
     admin_app.version = project.config.version
     app.mount("/admin", admin_app)
-
-    if len(analysis_app.routes) > 0:
-        unmount_app(analysis_app)
-        app.mount(f"/{project.config.version}", analysis_app)
-        app.mount(f"/current", analysis_app)
 
     default_refine_project = os.path.join(get_project_root(), *["src", "jinjat", "jinjat-refine"])
     project_static_files = os.path.join(project.project_root, "static")
@@ -119,30 +154,25 @@ def mount_app(app: FastAPI, project, dbt_target: DbtTarget):
             main_directory = default_refine_project
 
         if main_directory is not None:
-            static_files = StaticFilesWithFallbackIndex(fallback_home_page_response=lambda scope: {
-                "analysis_api_docs": f"{extract_host(scope)}{project.config.version}/docs" if len(
-                    analysis_app.routes) > 0 else None,
-                "admin_api_docs": f"{extract_host(scope)}admin/docs",
-                "magic": "https://jinj.at",
-                "options": dbt_target.dict()
-            }, directory=main_directory, html=True)
-
+            static_files = StaticFilesWithFallbackIndex(
+                fallback_home_page_response=lambda scope: homepage_without_ui(extract_host(scope), project, dbt_target),
+                directory=main_directory, html=True, enable_nextjs_route=dbt_target.refine is True)
     if static_files is not None:
         app.mount("/", static_files, name="static")
+    else:
+        app.add_route("/",
+                      lambda request: JSONResponse(homepage_without_ui(str(request.base_url), project, dbt_target)))
 
-    if static_files is None:
-        app.router.add_route("/", lambda request: JSONResponse({
-            "analysis_api_docs": f"{request.base_url}{project.config.version}/docs" if len(
-                analysis_app.routes) > 0 else None,
-            "admin_api_docs": f"{request.base_url}admin/docs",
-            "magic": "https://jin.jat",
-            "options": dbt_target.dict()
-        }))
+    app.mount(f"/", current_app)
 
 
 def get_multi_tenant_app(target: DbtTarget):
     project = app.state.dbt_project_container.add_project(target)
-    mount_app(app, project, target)
+    try:
+        mount_app(app, project, target)
+    except Exception as e:
+        logger().error("Unable to start the server", exc_info=e)
+        sys.exit(1)
     return app
 
 

@@ -1,0 +1,32 @@
+import 'react-grid-layout/css/styles.css';
+import 'react-resizable/css/styles.css';
+import styles from './dashboard.module.css';
+import { Responsive, WidthProvider } from "react-grid-layout";
+
+import React from "react";
+import {JinjatExposureProps} from "@components/crud/utils";
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
+
+export const JinjatDashboard: React.FC<JinjatExposureProps> = ({exposure: string}) => {
+    // layout is an array of objects, see the demo for more complete usage
+    const children = React.useMemo(() => {
+        return new Array(2).fill(undefined).map((val, idx) => {
+            return <div key={idx} data-grid={{ x: idx, y: idx, w: 2, h: 2 }} className={styles.dashboardItem}/>;
+        });
+    }, []);
+    console.log(children)
+    return (
+        <ResponsiveGridLayout
+            className="layout"
+            cols={{ lg: 10, md: 8, sm: 6, xs: 4, xxs: 2 }}
+            rowHeight={90}
+            containerPadding={[10, 10]}
+            margin={[10, 10]}
+            isDraggable={false}
+            isResizable={false}
+        >
+            {children}
+        </ResponsiveGridLayout>
+    )
+}

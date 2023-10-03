@@ -347,10 +347,11 @@ class DbtProject:
         return DbtAdapterExecutionResult(
             *table,
             raw_sql,
-            compiled_sql,
+            compiled_sql
         )
 
-    def compile_sql(self, raw_sql: str, ctx: Optional[DbtQueryRequestContext] = None, retry: int = 3) -> DbtAdapterCompilationResult:
+    def compile_sql(self, raw_sql: str, ctx: Optional[DbtQueryRequestContext] = None,
+                    retry: int = 3) -> DbtAdapterCompilationResult:
         """Creates a node with `get_server_node` method. Compile generated node.
         Has a retry built in because even uuidv4 cannot gaurantee uniqueness at the speed
         in which we can call this function concurrently. A retry significantly increases the stability"""

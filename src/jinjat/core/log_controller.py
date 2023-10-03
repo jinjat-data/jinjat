@@ -21,7 +21,6 @@ def rotating_log_handler(
     path: Path,
     formatter: str,
 ) -> RotatingFileHandler:
-    """This handler writes warning and higher level outputs to logs in a home .jinjat directory rotating them as needed"""
     path.mkdir(parents=True, exist_ok=True)
     handler = RotatingFileHandler(
         str(path / "{log_name}.log".format(log_name=name)),
@@ -68,7 +67,7 @@ def logger(
             level=level,
             rich_tracebacks=True,
             markup=True,
-            show_time=False,
+            show_time=True,
         )
     )
     _logger.propagate = False
