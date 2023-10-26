@@ -1,27 +1,27 @@
 import React from "react";
-import { List, useDataGrid, EditButton, ShowButton, DeleteButton } from "@refinedev/mui";
-import { DataGrid, GridToolbar, GridValueFormatterParams, GridNativeColTypes, GridColDef } from "@mui/x-data-grid";
+import {List, useDataGrid, EditButton, ShowButton, DeleteButton} from "@refinedev/mui";
+import {DataGrid, GridToolbar, GridValueFormatterParams, GridNativeColTypes, GridColDef} from "@mui/x-data-grid";
 import {HttpError, Option} from "@refinedev/core";
 import {Type, useSchema} from "@components/hooks/useSchema";
 import {JsonSchema} from "@jsonforms/core";
 import {JinjatFormProps, JinjatListProps} from "@components/crud/utils";
 
-export const JinjatList: React.FC<JinjatListProps> = ({packageName, analysis, enableActions}) => {
-    if(analysis == null) {
+export const JinjatList: React.FC<JinjatListProps> = ({packageName, version, resources, enableActions, logo, title}) => {
+    let analysis = resources.list;
+    if (analysis == null) {
         return <div>Unable to fetch schema</div>;
     }
 
-    let resource = `${packageName}.${analysis}`;
     const {dataGridProps} = useDataGrid({
         syncWithLocation: true,
-        resource: resource,
+        resource: `_analysis/${packageName}.${analysis}`,
         pagination: {
             mode: 'server'
         }
     });
 
-    const {data : schema, isLoading, isError} = useSchema<JsonSchema, HttpError>({
-        resource: resource,
+    const {data: jinjatSchema, isLoading, isError} = useSchema<JsonSchema, HttpError>({
+        analysis: `${packageName}.${analysis}`,
         config: {type: Type.RESPONSE}
     })
 
@@ -33,21 +33,21 @@ export const JinjatList: React.FC<JinjatListProps> = ({packageName, analysis, en
         return <div>Something went wrong!</div>;
     }
 
-    if (schema == null) {
+    if (jinjatSchema?.schema == null) {
         return <div>Schema is not found!</div>;
     }
 
-    const getDataGridType = (jinjatType : string) : GridNativeColTypes => {
+    const getDataGridType = (jinjatType: string): GridNativeColTypes => {
         return 'string'
     }
 
-    schema.items = schema.items || {}
+    jinjatSchema.schema.items = jinjatSchema.schema.items || {}
     // @ts-ignore
-    let rowIdColumn = schema.items['x-pk'];
+    let rowIdColumn = jinjatSchema.schema.items['x-pk'];
     // @ts-ignore
-    let properties = schema.items?.properties;
+    let properties = jinjatSchema.schema.items?.properties;
 
-    if(properties == null) {
+    if (properties == null) {
         return <div>Unable to infer schema!</div>;
     }
 
@@ -82,12 +82,12 @@ export const JinjatList: React.FC<JinjatListProps> = ({packageName, analysis, en
     const actionsColumn = {
         field: "actions",
         headerName: "Actions",
-        renderCell: function render({ row }) {
+        renderCell: function render({row}) {
             return (
                 <>
-                    <EditButton hideText recordItemId={row[rowIdColumn]} />
-                    <ShowButton hideText recordItemId={row[rowIdColumn]} />
-                    <DeleteButton hideText recordItemId={row[rowIdColumn]} />
+                    <EditButton hideText recordItemId={row[rowIdColumn]}/>
+                    <ShowButton hideText recordItemId={row[rowIdColumn]}/>
+                    <DeleteButton hideText recordItemId={row[rowIdColumn]}/>
                 </>
             );
         },
@@ -103,14 +103,14 @@ export const JinjatList: React.FC<JinjatListProps> = ({packageName, analysis, en
     ] : fieldColumns
 
     return (
-        <List>
+        <List title={title}>
             <DataGrid {...dataGridProps} columns={allColumns} autoHeight getRowId={(row) => {
                 let rowElement = row[rowIdColumn];
-                if(rowElement == null) {
+                if (rowElement == null) {
                     rowElement = 0
                 }
                 return rowElement;
-            }} slots={{ toolbar: GridToolbar }}/>
+            }} slots={{toolbar: GridToolbar}}/>
         </List>
     );
 };

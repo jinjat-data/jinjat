@@ -2,8 +2,6 @@ import {AuthBindings} from "@refinedev/core";
 import nookies from "nookies";
 import {NextRouter, useRouter} from "next/router";
 import {useQuery} from "@tanstack/react-query";
-import {JsonFormsRendererRegistryEntry} from "@jsonforms/core";
-import {JsonFormCustomModule} from "./jsonforms/util";
 import React from "react";
 
 const mockUsers = [

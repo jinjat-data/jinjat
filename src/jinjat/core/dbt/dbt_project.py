@@ -266,8 +266,6 @@ class DbtProject:
         self.get_ref_node.cache_clear()
         self.get_source_node.cache_clear()
         self.get_macro_function.cache_clear()
-        self.get_columns.cache_clear()
-        self.compile_sql.cache_clear()
 
     @lru_cache(maxsize=10)
     def get_ref_node(self, target_model_name: str) -> MaybeNonSource:

@@ -99,21 +99,6 @@ const Page = () => {
               <Typography variant="h4">
                 Login
               </Typography>
-              <Typography
-                color="text.secondary"
-                variant="body2"
-              >
-                Don&apos;t have an account?
-                &nbsp;
-                <Link
-                  component={NextLink}
-                  href="/auth/register"
-                  underline="hover"
-                  variant="subtitle2"
-                >
-                  Register
-                </Link>
-              </Typography>
             </Stack>
             <Tabs
               onChange={handleMethodChange}

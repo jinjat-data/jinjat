@@ -1,5 +1,6 @@
 import functools
 import os
+import re
 import typing
 from dataclasses import dataclass
 from enum import Enum
@@ -243,6 +244,9 @@ class StaticFilesWithFallbackIndex(StaticFiles):
 
 
 def convert_openapi_ref(default_project: str, cls, value, parent, model, _):
+    if value[0] == "#":
+        return value
+
     values = value.split(".", 3)
     if len(values) == 1:
         name = values[0]
@@ -270,3 +274,15 @@ def register_openapi_validators(project: DbtProject):
 
 def unregister_openapi_validators():
     Schema.__fields__.get("ref").post_validators = []
+
+
+def extract_key_value_pairs(path: str) -> typing.Dict[str, typing.Any]:
+    pattern = r"/(\w+):([^/]+)"
+    matches = re.findall(pattern, path)
+
+    output = {}
+    for match in matches:
+        key, value = match
+        output[key] = value
+
+    return output

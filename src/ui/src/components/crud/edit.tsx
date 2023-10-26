@@ -5,16 +5,17 @@ import {JinjatForm} from "src/jsonforms/JinjatForm";
 import {Type, useSchema} from "@components/hooks/useSchema";
 import {JsonSchema} from "@jsonforms/core";
 import {ErrorObject} from "ajv";
+import {JinjatFormProps} from "@components/crud/utils";
 
-export const JinjatEdit: React.FC<IResourceComponentsProps> = () => {
-    const {resource} = useResource();
-    let analysis = resource?.meta?.jinjat.resources.edit;
-    const {queryResult} = useShow();
+export const JinjatEdit: React.FC<JinjatFormProps> = ({packageName, version, resources, params}) => {
+    const {queryResult} = useShow({resource: `_analysis/${packageName}.${resources.show}`, id: params});
+
     const [errors, setErrors] = useState<ErrorObject[] | null>(null)
     const { formLoading, onFinish } = useForm();
 
+    let resource = `${packageName}.${resources.edit}`;
     const {data: schema, isLoading : isLoadingSchema, isError} = useSchema<JsonSchema, HttpError>({
-        resource: analysis,
+        analysis: resource,
         config: {type: Type.REQUEST}
     })
 

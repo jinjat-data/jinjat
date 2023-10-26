@@ -79,8 +79,8 @@ class JinjatAnalysisConfig(BaseModel):
     response: Optional[ResponseSchema] = ResponseSchema()
 
 
-async def generate_dbt_context_from_request(request: Request, openapi: dict,
-                                            transform_request: typing.Callable[[dict], dict]):
+async def generate_dbt_context_from_request(request: Request, openapi: dict = None,
+                                            transform_request: typing.Callable[[dict], dict] = None):
     if request.method in ['PATCH', 'PUT', 'POST']:
         body = transform_request(await request.json())
         validate(instance=body, schema=openapi)

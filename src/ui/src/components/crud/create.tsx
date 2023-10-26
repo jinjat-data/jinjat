@@ -7,15 +7,15 @@ import {JinjatForm} from "src/jsonforms/JinjatForm";
 import {ErrorObject} from "ajv";
 import {JinjatFormProps} from "@components/crud/utils";
 
-export const JinjatCreate: React.FC<JinjatFormProps> = ({packageName, analysis}) => {
+export const JinjatCreate: React.FC<JinjatFormProps> = ({packageName, resources, title, logo}) => {
     const { formLoading, onFinish } = useForm();
 
     const [data, setData] = useState<object>({})
     const [errors, setErrors] = useState<ErrorObject[] | null>(null)
 
-    let resource = `${packageName}.${analysis}`;
-    const {data: schema, isLoading, error} = useSchema<JsonSchema, HttpError>({
-        resource: resource,
+    let resource = `${packageName}.${resources.create}`;
+    const {data : jinjatSchema, isLoading, error} = useSchema<JsonSchema, HttpError>({
+        analysis: resource,
         config: {type: Type.REQUEST}
     })
 
@@ -27,19 +27,17 @@ export const JinjatCreate: React.FC<JinjatFormProps> = ({packageName, analysis})
         return <div>Something went wrong! {error.message}</div>;
     }
 
-    if(schema == null) {
+    if(jinjatSchema == null) {
         return <div>Schema not found!</div>;
     }
 
     // @ts-ignore
-    let pkColumn = schema['x-pk'];
-    if(pkColumn != null && schema?.properties != null) {
-        delete schema.properties[pkColumn]
+    let pkColumn = jinjatSchema.schema['x-pk'];
+    if(pkColumn != null && jinjatSchema?.schema?.properties != null) {
+        delete jinjatSchema?.schema?.properties[pkColumn]
     }
 
-
-
-    return <Create isLoading={formLoading} saveButtonProps={{disabled: errors != null && errors.length > 0, onClick: () => onFinish(data)}}>
-        <JinjatForm data={data} schema={schema} onChange={setData} onError={setErrors}/>
+    return <Create title={title} goBack={logo} isLoading={formLoading} saveButtonProps={{disabled: errors != null && errors.length > 0, onClick: () => onFinish(data)}}>
+        <JinjatForm data={data} schema={jinjatSchema.schema} onChange={setData} onError={setErrors}/>
     </Create>
 }

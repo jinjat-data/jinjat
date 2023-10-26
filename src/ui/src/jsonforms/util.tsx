@@ -36,7 +36,7 @@ export function generateJsonformModule(entry: JsonFormCustomModule): JsonFormsRe
 
                 let b = resolveSchema(schema, uischema.scope, context?.rootSchema);
                 // @ts-ignore
-                return b['x-jsonforms']?.renderer == entry.name
+                return b?.['x-jsonforms']?.renderer == entry.name
             }
         ), renderer: ({data, handleChange, path}: any) => (
             <Component

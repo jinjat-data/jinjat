@@ -1,4 +1,4 @@
-import { useMediaQuery } from "@mui/material";
+import {CssBaseline, useMediaQuery} from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
 import { RefineThemes } from "@refinedev/mui";
 import { parseCookies, setCookie } from "nookies";
@@ -8,6 +8,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
+import {createTheme} from "../theme";
 
 type ColorModeContextType = {
   mode: string;
@@ -17,6 +18,8 @@ type ColorModeContextType = {
 export const ColorModeContext = createContext<ColorModeContextType>(
   {} as ColorModeContextType
 );
+
+const theme = createTheme();
 
 export const ColorModeContextProvider: React.FC<PropsWithChildren> = ({
   children,
@@ -32,7 +35,8 @@ export const ColorModeContextProvider: React.FC<PropsWithChildren> = ({
 
   useEffect(() => {
     if (isMounted) {
-      setMode(parseCookies()["theme"] || (systemTheme ? "dark" : "light"));
+      let mode = parseCookies()["theme"] || (systemTheme ? "dark" : "light");
+      setMode(mode);
     }
   }, [isMounted, systemTheme]);
 
@@ -51,9 +55,10 @@ export const ColorModeContextProvider: React.FC<PropsWithChildren> = ({
       }}
     >
       <ThemeProvider
-        // you can change the theme colors here. example: mode === "light" ? RefineThemes.Magenta : RefineThemes.MagentaDark
-        theme={mode === "light" ? RefineThemes.Blue : RefineThemes.BlueDark}
+        // theme={mode === "light" ? theme : RefineThemes.BlueDark}
+        theme={theme}
       >
+        <CssBaseline />
         {children}
       </ThemeProvider>
     </ColorModeContext.Provider>

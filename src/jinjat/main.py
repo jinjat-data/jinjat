@@ -157,66 +157,6 @@ def serve(
     sys.exit(server.exitcode)
 
 
-@cli.command(
-    context_settings=dict(
-        ignore_unknown_options=True,
-        allow_extra_args=True,
-    )
-)
-@shared_single_project_opts
-@shared_server_opts
-@click.pass_context
-def streamlit(
-        ctx,
-        project_dir: str,
-        profiles_dir: str,
-        target: str,
-        host: str,
-        port: int,
-):
-    """Start the jinjat playground
-    \f
-    Pass the --options command to see streamlit specific options that can be passed to the app,
-    pass --config to see the output of streamlit config show
-    """
-
-    logger().info(":water_wave: Executing Jinjat Playground\n")
-
-    if "--options" in ctx.args:
-        subprocess.run(["streamlit", "run", "--help"])
-        ctx.exit()
-
-    import os
-
-    if "--config" in ctx.args:
-        subprocess.run(
-            ["streamlit", "config", "show"],
-            env=os.environ,
-            cwd=Path.cwd(),
-        )
-        ctx.exit()
-
-    script_args = ["--"]
-    if project_dir:
-        script_args.append("--project-dir")
-        script_args.append(project_dir)
-    if profiles_dir:
-        script_args.append("--profiles-dir")
-        script_args.append(profiles_dir)
-    if target:
-        script_args.append("--target")
-        script_args.append(target)
-
-    streamlit_command = ["streamlit", "run", "--runner.magicEnabled=false",
-                         Path(__file__).parent / "playground.py", ] + ctx.args + script_args
-    print(streamlit_command)
-    subprocess.run(
-        streamlit_command,
-        env=os.environ,
-        cwd=Path.cwd(),
-    )
-
-
 def run_server(host="localhost", port=8581, target=DbtTarget):
     uvicorn.run(
         lambda: get_multi_tenant_app(target),

@@ -5,21 +5,30 @@ import {JinjatForm} from "src/jsonforms/JinjatForm";
 import {Type, useSchema} from "@components/hooks/useSchema";
 import {JsonSchema} from "@jsonforms/core";
 import {JinjatListProps} from "@components/crud/utils";
+import JinjatUrlParamsForm from "../../jsonforms/JInjatUrlParamsForm";
+import JinjatAnalysisForm from "../../jsonforms/JinjatAnalysisForm";
 
-export const JinjatShow: React.FC<JinjatListProps> = ({packageName}) => {
-    const {queryResult} = useShow();
-    let analysis = resource?.meta?.jinjat.resources.show;
+const aa = {
+    "type": "object",
+    properties: {
+        "aa": {
+            "type": "string",
+            "enum": ["test", "mest"]
+        }
+    }
+}
+export const JinjatShow: React.FC<JinjatListProps> = ({packageName, version, resources, params}) => {
+    const {queryResult} = useShow({resource: `_analysis/${packageName}.${resources.show}`, id: params});
 
-    let resource = `${packageName}.${analysis}`;
-    const {data: schema, isLoading: isSchemaLoading, isError} = useSchema<JsonSchema, HttpError>({
-        resource: resource,
+    let analysis = resources.show;
+    const {data: jinjatSchema, isLoading: isSchemaLoading, isError} = useSchema<JsonSchema, HttpError>({
+        analysis: `${packageName}.${analysis}`,
         config: {type: Type.RESPONSE}
     })
 
     if (isSchemaLoading) {
         return <div>Loading...</div>;
-    } else
-    if(schema == null) {
+    } else if (jinjatSchema == null) {
         return <div>Unable to find the schema...</div>;
     }
 
@@ -29,13 +38,11 @@ export const JinjatShow: React.FC<JinjatListProps> = ({packageName}) => {
 
     const {data, isLoading} = queryResult;
 
-    if(data == null) {
-        return <div>Can't see the result :(</div>;
-    }
-
+    console.log(data, isLoading)
     return (
         <Show isLoading={isLoading}>
-            <JinjatForm data={data.data} schema={schema} readonly/>
+            <JinjatAnalysisForm parameters={jinjatSchema.parameters}/>
+            {!isLoading ? <JinjatForm data={data?.data} schema={jinjatSchema.schema} readonly/> : <div>loading..</div>}
         </Show>
     );
 }

@@ -7,12 +7,14 @@ from watchdog.observers.polling import PollingObserver
 
 def watch(directory: str, callback):
     class DbtProjectWatcher(PatternMatchingEventHandler):
-        patterns = ['analysis/**/*.sql',
+        patterns = ['analyses/**/*.sql',
                     'analyses/**/*.yml',
-                    'macros/**/*.sql',
-                    'macros/**/*.yml',
+                    'analyses/**/*.mdx',
                     'models/**/*.sql',
                     'models/**/*.yml',
+                    'seeds/**/*.csv',
+                    'seeds/**/*.yml',
+                    'jinjat_project.yml'
                     'dbt_project.yml']
 
         def on_any_event(self, event):

@@ -20,6 +20,7 @@ from jinjat.core.log_controller import logger
 from jinjat.core.models import JinjatProjectConfig
 from jinjat.core.routes.admin import app as admin_app
 from jinjat.core.routes.analysis import create_analysis_apps
+from jinjat.core.routes.notebook import lookup_notebook_by_id
 from jinjat.core.util import filesystem
 from jinjat.core.util.api import register_jsonapi_exception_handlers, rapidoc_html, CustomButton, DBT_PROJECT_HEADER, \
     DBT_PROJECT_NAME, StaticFilesWithFallbackIndex, extract_host
@@ -95,7 +96,7 @@ def generate_app(config: JinjatProjectConfig, project: DbtProject, changed_file:
 def homepage_without_ui(host, project: DbtProject, dbt_target: DbtTarget) -> dict:
     return {
         "analysis_api_docs": f"{host}{project.config.project_name}/docs" if len(app.routes) > 2 else None,
-        "dependencies": [route.path for route in app.routes[2].routes[2:]],
+        "dependencies": [route.path for route in app.routes[3].routes[2:]],
         "admin_api_docs": f"{host}admin/docs",
         "magic": "https://jinj.at",
         "options": dbt_target.dict()
@@ -120,6 +121,7 @@ def mount_app(app: FastAPI, project: DbtProject, dbt_target: DbtTarget):
     current_app = generate_app(config, project)
 
     def watch(event: FileSystemEvent):
+        relative_dir = os.path.relpath(event.src_path, project.project_root)
         logger().info(f"Reloading project, file changed: {event.src_path}")
         project.safe_parse_project(reinit=True)
         logger().info(f"Updating the endpoints")
@@ -139,6 +141,7 @@ def mount_app(app: FastAPI, project: DbtProject, dbt_target: DbtTarget):
                                include_in_schema=False)
     admin_app.version = project.config.version
     app.mount("/admin", admin_app)
+    app.add_api_route("/_notebook/{id}", endpoint=functools.partial(lookup_notebook_by_id, config, project, ))
 
     default_refine_project = os.path.join(get_project_root(), *["src", "jinjat", "jinjat-refine"])
     project_static_files = os.path.join(project.project_root, "static")

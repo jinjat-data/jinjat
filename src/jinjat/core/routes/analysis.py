@@ -2,9 +2,10 @@ import functools
 import itertools
 import json
 import re
+import typing
 from copy import deepcopy
 from pathlib import Path
-from typing import List, Optional, Callable, Mapping
+from typing import List, Optional, Callable
 
 import jmespath
 import jsonref
@@ -17,7 +18,6 @@ from openapi_schema_pydantic import Parameter
 from pydantic import ValidationError
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
-from starlette.routing import Route
 
 from jinjat.core.dbt.dbt_project import DbtProject
 from jinjat.core.exceptions import InvalidJinjaConfig
@@ -25,7 +25,7 @@ from jinjat.core.models import generate_dbt_context_from_request, JinjatExecutio
     JinjatProjectConfig, JSON_COLUMNS_QUERY_PARAM, RequestSchema, ResponseSchema
 from jinjat.core.routes.admin import _execute_jinjat_query
 from jinjat.core.util.api import get_human_readable_error, rapidoc_html, register_jsonapi_exception_handlers, \
-    CustomButton, register_openapi_validators, unregister_openapi_validators
+    CustomButton, register_openapi_validators, unregister_openapi_validators, extract_key_value_pairs
 from jinjat.core.util.jmespath import extract_jmespath
 
 ANALYSIS_FILE_PATH_REGEX = re.compile(r"^analysis\/(.*)\.sql$")
@@ -139,8 +139,7 @@ async def custom_openapi(project, jinjat_project_config, api, package_name, req:
 
     if jinjat_project_config.openapi is not None:
         always_merger.merge(openapi_schema, jinjat_project_config.openapi)
-    if extract_path:
-        openapi_schema = jsonref.replace_refs(deepcopy(openapi_schema), base_uri="", proxies=False, lazy_load=False)
+    openapi_schema = jsonref.replace_refs(deepcopy(openapi_schema), base_uri="", proxies=False, lazy_load=False)
 
     api.openapi_schema = openapi_schema
 
@@ -150,7 +149,7 @@ async def custom_openapi(project, jinjat_project_config, api, package_name, req:
 def enrich_openapi_schema(project: DbtProject, openapi: Operation, request: RequestSchema, response: ResponseSchema):
     if request.body is not None:
         openapi.requestBody = RequestBody(content={"application/json": MediaType(schema=request.body)})
-    if response is not None:
+    if response.content is not None:
         response_body_schema = get_final_response(response.transform, response.content)
         openapi.responses = {response.status: APIResponse(description=response.description,
                                                           content={"application/json": MediaType(
@@ -175,13 +174,20 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
     analysis_lookup = {}
 
     async def lookup_by_id(request: Request, response: Response):
-        analysis_func = analysis_lookup["analysis."+request.path_params.get('id')]
+        analysis_name = request.path_params.get('id')
+        rest_of_path = request.path_params.get('rest_of_path')
+        path_params = extract_key_value_pairs(rest_of_path)
+        # Override it to propagate dbt context
+        request.scope['path_params'] = path_params
+        if '.' not in analysis_name:
+            analysis_name = f'{project.project_name}.{analysis_name}'
+        analysis_func = analysis_lookup.get("analysis." + analysis_name)
         if analysis_func is None:
-            return None
+            response.status_code = 404
         else:
             return await analysis_func(request, response)
 
-    api.add_api_route("/_id/{id}", endpoint=lookup_by_id)
+    api.add_api_route("/_analysis/{id}{rest_of_path:path}", endpoint=lookup_by_id)
 
     for package_name, analyses in nodes_by_packages.items():
         sub_app = FastAPI(redoc_url=None, docs_url=None, openapi_url=None)

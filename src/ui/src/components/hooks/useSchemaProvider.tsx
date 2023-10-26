@@ -1,4 +1,4 @@
-import React, {ReactNode, useContext, useMemo} from "react";
+import React, {ReactNode, useContext} from "react";
 
 import {IJinjatContextProvider, JinjatProject} from "./schema";
 
