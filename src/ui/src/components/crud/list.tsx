@@ -83,11 +83,12 @@ export const JinjatList: React.FC<JinjatListProps> = ({packageName, version, res
         field: "actions",
         headerName: "Actions",
         renderCell: function render({row}) {
+            let recordItemId = `id:${row[rowIdColumn]}`;
             return (
                 <>
-                    <EditButton hideText recordItemId={row[rowIdColumn]}/>
-                    <ShowButton hideText recordItemId={row[rowIdColumn]}/>
-                    <DeleteButton hideText recordItemId={row[rowIdColumn]}/>
+                    <EditButton hideText recordItemId={recordItemId}/>
+                    <ShowButton hideText recordItemId={recordItemId}/>
+                    <DeleteButton hideText recordItemId={recordItemId}/>
                 </>
             );
         },
@@ -103,7 +104,7 @@ export const JinjatList: React.FC<JinjatListProps> = ({packageName, version, res
     ] : fieldColumns
 
     return (
-        <List title={title}>
+        <List title={title} logo={logo}>
             <DataGrid {...dataGridProps} columns={allColumns} autoHeight getRowId={(row) => {
                 let rowElement = row[rowIdColumn];
                 if (rowElement == null) {

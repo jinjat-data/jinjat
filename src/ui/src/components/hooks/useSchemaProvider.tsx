@@ -1,6 +1,6 @@
 import React, {ReactNode, useContext} from "react";
 
-import {IJinjatContextProvider, JinjatProject} from "./schema";
+import {DbtNode, IJinjatContextProvider, JinjatProject} from "./schema";
 
 export const defaultSchemaProvider = () => {
     return {
@@ -9,7 +9,8 @@ export const defaultSchemaProvider = () => {
         getProject: () => Promise.resolve({resources: [], version: 'LOADING'}),
         getApiUrl: () => "",
         getReadme: () => Promise.resolve({content: '', file_path: ''}),
-    } as unknown as IJinjatContextProvider;
+        getAllDbtNodes: () => Promise.resolve([])
+} as unknown as IJinjatContextProvider;
 };
 
 

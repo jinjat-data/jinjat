@@ -1,13 +1,22 @@
 import ReactECharts from "echarts-for-react";
-import React, {useEffect, useMemo} from "react";
-import {JinjatEChartsProps} from "@components/crud/utils";
-import {HttpError, useCustom, useList, useShow} from "@refinedev/core";
+import React, {useMemo} from "react";
+import {useCustom} from "@refinedev/core";
 import * as echarts from "echarts";
 import {memoize} from "lodash";
+import {JinjatDataset} from "@components/crud/utils";
+import PropTypes from "prop-types";
+
+export interface JinjatEChartsProps {
+    dataset: JinjatDataset;
+    options?: EChartsOptions;
+    theme?: string
+}
+
+type EChartsOptions = object;
 
 export const JinjatECharts: React.FC<JinjatEChartsProps> = ({
                                                                 dataset,
-                                                                options,
+                                                                options = {},
                                                                 theme,
                                                             }) => {
     // @ts-ignore
@@ -29,7 +38,7 @@ export const JinjatECharts: React.FC<JinjatEChartsProps> = ({
         if(data?.data) {
             // @ts-ignore
             options["dataset"] = [
-                {dimensions: ["test"], source: data?.data},
+                {source: data?.data},
                 // @ts-ignore
                 ...(options["datasets"] || []),
             ];
@@ -62,3 +71,5 @@ export const JinjatECharts: React.FC<JinjatEChartsProps> = ({
         />
     );
 };
+
+JinjatECharts.displayName = "ECharts"

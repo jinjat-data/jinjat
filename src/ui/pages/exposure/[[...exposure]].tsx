@@ -2,23 +2,26 @@ import {authCheck} from "src/authProvider";
 import {useRouter} from 'next/router'
 import {JinjatList} from "@components/crud/list";
 import {JinjatCreate} from "@components/crud/create";
-import {JinjatShow} from "@components/crud/show";
 import React from "react";
-import {JinjatEdit} from "@components/crud/edit";
 import {useResource} from "@refinedev/core";
 import {useJinjatProvider} from "@components/hooks/useSchemaProvider";
 import {useQuery} from "@tanstack/react-query";
 import {JinjatDashboard} from "@components/dashboard/dashboard";
 import {JinjatNotebook} from "@components/notebook/JinjatNotebook";
-
+import {actions} from "src/interfaces/createComponents";
 
 export default function ExposurePage() {
-    const {resource} = useResource();
-    let type = resource?.meta?.type;
+    let nonAuth = authCheck();
 
     const router = useRouter()
     const {exposure} = router.query
+    if(exposure == null) {
+        debugger
+    }
     let [package_name, version, name, action, id] = exposure
+
+    const {resource} = useResource(`exposure.${package_name}.${name}`);
+    let type = resource?.meta?.type;
     const schemaProvider = useJinjatProvider();
 
     let analysis_name = resource?.meta?.jinjat?.analysis || name;
@@ -30,18 +33,8 @@ export default function ExposurePage() {
         enabled: action == null && type == 'analysis'
     })
 
-    let nonAuth = authCheck();
     if (nonAuth) {
         return nonAuth
-    }
-
-    const actions = {
-        "create": JinjatCreate,
-        "show": JinjatShow,
-        "edit": JinjatEdit,
-        "list": JinjatList,
-        "dashboard": JinjatDashboard,
-        "notebook": JinjatNotebook,
     }
 
     if (action != null) {

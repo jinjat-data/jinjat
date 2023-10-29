@@ -10,14 +10,7 @@ import {Generate, JsonSchema, UISchemaElement} from "@jsonforms/core";
 import {ErrorObject} from "ajv";
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
-import {VerticalLayout} from "@jsonforms/core/src/models/uischema";
 import _ from "lodash";
-
-// const default_uischema: VerticalLayout = {
-//     options: {
-//         showUnfocusedDescription: true
-//     }
-// }
 
 let custom_modules = [{
     module: '@mui/material',
@@ -84,7 +77,7 @@ export const JinjatForm: React.FC<JinjatJsonFormsInitStateProps<any>> = (props) 
             renderers={renderers}
             cells={materialCells}
             onChange={({data, errors}) => {
-                props.onChange && props.onChange(data)
+                props.onChange && !_.isEqual(data, props.data) && props.onChange(data)
                 props.onError && props.onError(errors || [])
             }}
         />

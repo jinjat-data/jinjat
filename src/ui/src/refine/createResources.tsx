@@ -10,10 +10,10 @@ export function createResources({resources, version}: JinjatProject): ResourcePr
         const path = `/exposure/${name}`;
         return {
             name: name,
-            identifier: resource.identifier,
+            identifier: resource.unique_id,
             list: `${path}`,
-            edit: resource.type == ResourceType.APPLICATION ? `${path}/edit/:id` : undefined,
-            show: resource.type == ResourceType.APPLICATION ? `${path}/show/:id` : undefined,
+            edit: resource?.jinjat?.refine?.resources?.edit ? `${path}/edit/:id` : undefined,
+            show: resource?.jinjat?.refine?.resources?.show ? `${path}/show/:id` : undefined,
             create: resource?.jinjat?.refine?.resources?.create != null ? `${path}/create` : undefined,
             meta: {
                 canDelete: resource.jinjat?.refine?.actions?.delete != null,

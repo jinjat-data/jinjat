@@ -1,8 +1,8 @@
-import {JinjatECharts} from "@components/chart/JinjatECharts";
+import allChartComponents from "@components/chart";
 import {
-    Box, Card, CardContent, CardHeader,
+    Box, Card, CardContent, CardHeader, darken,
     Divider as MuiDivider,
-    Link, Slider,
+    Link, Palette, Slider,
     Table,
     TableBody,
     TableCell,
@@ -10,7 +10,6 @@ import {
     TableProps, TableRow,
     Typography
 } from "@mui/material";
-import {getScrollbarStyles} from "@components/chart/utils";
 import Grid from "@mui/material/Unstable_Grid2";
 import Paper from "@mui/material/Paper";
 import React, {Component, ReactNode} from "react";
@@ -23,6 +22,31 @@ import DocumentChartBarIcon from "@heroicons/react/24/outline/DocumentChartBarIc
 import {JinjatResource} from "@components/hooks/schema";
 import WindowIcon from "@heroicons/react/24/outline/WindowIcon";
 import {Observe} from "mdx-state";
+import {JinjatCreate} from "@components/crud/create";
+import {JinjatShow} from "@components/crud/show";
+import {JinjatEdit} from "@components/crud/edit";
+import {JinjatList} from "@components/crud/list";
+import {JinjatDashboard} from "@components/dashboard/dashboard";
+import {JinjatNotebook} from "@components/notebook/JinjatNotebook";
+
+export const getScrollbarStyles = (palette: Palette) => ({
+    '::-webkit-scrollbar': {
+        width: '8px',
+        height: '6px',
+    },
+    '::-webkit-scrollbar-track': {
+        background:
+            palette.mode === 'dark'
+                ? palette.background.default
+                : palette.background.paper,
+        borderRadius: '8px',
+        overflow: 'hidden',
+    },
+    '::-webkit-scrollbar-thumb': {
+        background: darken(palette.background.default, 0.05),
+        borderRadius: '8px',
+    },
+});
 
 export const muiComponents = {
     a: props => <Link {...props} />,
@@ -75,10 +99,10 @@ export const muiComponents = {
     Slider,
     Blockquote: Box
 };
-export const jinjatComponents = {ECharts: JinjatECharts, Observe};
+export const jinjatComponents = {Observe};
 
 type GenericObject = { [key: string]: any };
-export const allComponents : GenericObject =  {...muiComponents, ...jinjatComponents}
+export const allComponents: GenericObject = {...muiComponents, ...jinjatComponents, ...allChartComponents}
 
 
 const allComponentNames = Object.keys(allComponents)
@@ -97,8 +121,21 @@ const exposureIcons = {
     "notebook": DocumentChartBarIcon,
 }
 
-export function getIconForResource(resource: JinjatResource): ReactNode | undefined {
+export const actions = {
+    "create": JinjatCreate,
+    "show": JinjatShow,
+    "edit": JinjatEdit,
+    "list": JinjatList,
+    "dashboard": JinjatDashboard,
+    "notebook": JinjatNotebook,
+}
+
+export function getIconForKeyword(value: string, fallbackComponent = WindowIcon): ReactNode | undefined {
     // @ts-ignore
-    let Icon = exposureIcons[resource?.jinjat?.refine?.layout || resource.type] || WindowIcon;
+    let Icon = exposureIcons[value];
     return <Icon/>;
+}
+
+export function getIconForResource(resource: JinjatResource): ReactNode | undefined {
+    return getIconForKeyword(resource?.jinjat?.refine?.layout || resource.type, WindowIcon);
 }

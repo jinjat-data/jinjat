@@ -25,19 +25,6 @@ export interface JinjatNotebookProps {
     source? : string
 }
 
-export interface JinjatEChartsProps {
-    dataset: JinjatDataset;
-    options: EChartsOptions;
-    theme?: string
-}
-
-type EChartsOptions = object;
-
-export interface JinjatComponent {
-    name : string;
-    args: Map<string, any>;
-}
-
 export interface JinjatDataset {
     analysis: string;
     body?: Map<string, any>;

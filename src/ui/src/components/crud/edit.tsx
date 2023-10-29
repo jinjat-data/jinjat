@@ -6,6 +6,7 @@ import {Type, useSchema} from "@components/hooks/useSchema";
 import {JsonSchema} from "@jsonforms/core";
 import {ErrorObject} from "ajv";
 import {JinjatFormProps} from "@components/crud/utils";
+import JinjatAnalysisForm from "../../jsonforms/JinjatAnalysisForm";
 
 export const JinjatEdit: React.FC<JinjatFormProps> = ({packageName, version, resources, params}) => {
     const {queryResult} = useShow({resource: `_analysis/${packageName}.${resources.show}`, id: params});
@@ -14,7 +15,7 @@ export const JinjatEdit: React.FC<JinjatFormProps> = ({packageName, version, res
     const { formLoading, onFinish } = useForm();
 
     let resource = `${packageName}.${resources.edit}`;
-    const {data: schema, isLoading : isLoadingSchema, isError} = useSchema<JsonSchema, HttpError>({
+    const {data: jinjatSchema, isLoading : isLoadingSchema, isError} = useSchema<JsonSchema, HttpError>({
         analysis: resource,
         config: {type: Type.REQUEST}
     })
@@ -23,15 +24,15 @@ export const JinjatEdit: React.FC<JinjatFormProps> = ({packageName, version, res
         return <div>Loading schema...</div>;
     }
 
-    if (isError || !schema) {
+    if (isError || !jinjatSchema) {
         return <div>Something went wrong!</div>;
     }
 
     // @ts-ignore
-    let pkColumn = schema['x-pk'];
-    if(pkColumn != null && schema?.properties != null) {
+    let pkColumn = jinjatSchema.schema['x-pk'];
+    if(pkColumn != null && jinjatSchema?.schema.properties != null) {
         // @ts-ignore
-       schema.properties[pkColumn].readOnly = true
+       jinjatSchema.schema.properties[pkColumn].readOnly = true
     }
 
     const {data, isLoading} = queryResult;
@@ -42,7 +43,8 @@ export const JinjatEdit: React.FC<JinjatFormProps> = ({packageName, version, res
 
     return (
         <Edit isLoading={isLoading || formLoading} saveButtonProps={{disabled: errors != null && errors.length > 0, onClick: () => onFinish(data)}}>
-            <JinjatForm data={data.data} schema={schema} onError={setErrors}/>
+            <JinjatAnalysisForm parameters={jinjatSchema.parameters} action={"edit"}/>
+            <JinjatForm data={data.data} schema={jinjatSchema.schema} onError={setErrors}/>
         </Edit>
     );
 }

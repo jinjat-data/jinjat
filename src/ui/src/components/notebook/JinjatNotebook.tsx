@@ -9,7 +9,6 @@ import {createState} from "mdx-state";
 import {useQuery} from "@tanstack/react-query";
 import {Alert, AlertTitle} from "@mui/material";
 import {ErrorBoundary} from "react-error-boundary";
-import { atom } from 'nanostores'
 
 export const JinjatNotebook: React.FC<JinjatNotebookProps> = ({packageName, analysis}) => {
     const [doc, setDoc] = useState<DocFile>()

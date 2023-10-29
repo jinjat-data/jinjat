@@ -88,7 +88,7 @@ export const dataProvider = (
   },
 
   update: async ({ resource, id, variables, meta }) => {
-    const url = `${apiUrl}/${resource}/id:${id}`;
+    const url = `${apiUrl}/${resource}/${id}`;
 
     const { headers, method } = meta ?? {};
     const requestMethod = (method as MethodTypesWithBody) ?? "patch";
@@ -103,7 +103,7 @@ export const dataProvider = (
   },
 
   getOne: async ({ resource, id, meta }) => {
-    const url = `${apiUrl}/${resource}/id:${id}`;
+    const url = `${apiUrl}/${resource}/${id}`;
 
     const { headers, method } = meta ?? {};
     const requestMethod = (method as MethodTypes) ?? "get";
@@ -116,7 +116,7 @@ export const dataProvider = (
   },
 
   deleteOne: async ({ resource, id, variables, meta }) => {
-    const url = `${apiUrl}/${resource}/id:${id}`;
+    const url = `${apiUrl}/${resource}/${id}`;
 
     const { headers, method } = meta ?? {};
     const requestMethod = (method as MethodTypesWithBody) ?? "delete";

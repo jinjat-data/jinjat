@@ -47,7 +47,7 @@ export enum ResourceType {
 
 export interface JinjatResource {
     name: string,
-    identifier: string,
+    unique_id: string,
     type: ResourceType,
 
     label?: string,
@@ -71,6 +71,13 @@ export interface JinjatProject {
 export interface DocFile {
     content: string
     file_path: string
+}
+
+export interface DbtNode {
+    package_name: string
+    name: string
+    resource_type: string
+    unique_id: string
 }
 
 type DashboardParameter = {
@@ -129,12 +136,15 @@ export interface IJinjatContextProvider {
     getReadme: () => Promise<DocFile>
 
     getNotebook: (params: { packageName: string, analysis: string }) => Promise<DocFile>
+
+    getAllDbtNodes: () => Promise<DbtNode[]>
 }
 
 const REQUEST_QUERY = (packageName: string, analysis: string) => `paths.*.*[] | [?ends_with(operationId, \`${analysis}\`)] | [0] .projection(\`parameters, schema\`, parameters, requestBody.content."application/json".schema)`
 const RESPONSE_QUERY = (packageName: string, analysis: string) => `paths.*.*[] | [?ends_with(operationId, \`${analysis}\`)] | [0] .projection(\`parameters, schema\`, parameters, responses."200".content."application/json".schema)`
-const EXPOSURES_QUERY = 'exposures.* | [?not_null(meta.jinjat)].projection(`name, type, unique_id, description, package_name, jinjat, owner, label`, name, type, identifier, description, package_name, meta.jinjat, owner, label)'
+const EXPOSURES_QUERY = 'exposures.* | [?not_null(meta.jinjat)].{name: name, type: type, unique_id: unique_id, description: description, package_name: package_name, jinjat: meta.jinjat, owner: owner, label: label}'
 const MAIN_README_QUERY = 'docs."doc.{{project_name}}.__overview__".projection(\'file_path, content\', original_file_path, block_contents)'
+const ALL_DBT_NODES = 'nodes.* | [?resource_type==\'model\' || resource_type==\'source\' || resource_type==\'seed\' || resource_type==\'analysis\'].{package_name: package_name, name: name, resource_type: resource_type, unique_id: unique_id}'
 
 const GET_ANALYSIS_METHOD = (packageName : string, analysis: string) => `nodes."analysis.${packageName}.${analysis}".config.jinjat.method`
 const GET_DASHBOARD_EXPOSURE = (packageName : string, exposure: string) => `exposures."exposure.${packageName}.${exposure}".projection(\`parameters, items\`, meta.jinjat.parameters meta.jinjat.items)`
@@ -203,5 +213,11 @@ export const jinjatProvider = (
         ).then(result => result.data);
     },
 
-
+    getAllDbtNodes(): Promise<DbtNode> {
+        debugger
+        let queryParams = stringify({jmespath: ALL_DBT_NODES});
+        return httpClient.get(
+            `${apiUrl}/admin/manifest.json?${queryParams}`,
+        ).then(result => result.data);
+    }
 })

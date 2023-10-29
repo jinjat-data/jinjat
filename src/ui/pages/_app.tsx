@@ -1,13 +1,15 @@
 import {DevtoolsProvider, DevtoolsPanel} from "@refinedev/devtools";
 import {Refine} from "@refinedev/core";
-import {RefineKbar, RefineKbarProvider} from "@refinedev/kbar";
 import {RefineSnackbarProvider, notificationProvider} from "@refinedev/mui";
 import routerProvider, {
     UnsavedChangesNotifier,
 } from "@refinedev/nextjs-router";
 import type {NextPage} from "next";
 import {AppProps} from "next/app";
-import {QueryClient} from "@tanstack/react-query";
+import {QueryClient, QueryClientProvider} from "@tanstack/react-query";
+import {
+    KBarProvider
+} from "kbar";
 
 import {ColorModeContextProvider} from "@contexts";
 import {
@@ -21,12 +23,11 @@ import {
     GlobalStyles,
 } from "@mui/material";
 import {authProvider} from "src/authProvider";
-import React from "react";
+import React, {useState} from "react";
 import {createResources} from "src/refine/createResources";
 import {useJinjatProject} from "@components/hooks/useJinjatProject";
-import useKbarActions from "@components/hooks/useKbarActions";
 import {jinjatProvider} from "@components/hooks/schema";
-import {JinjatServiceContextProvider} from "@components/hooks/useSchemaProvider";
+import {JinjatServiceContextProvider, useJinjatProvider} from "@components/hooks/useSchemaProvider";
 import {getMessageForStatusCode} from "../src/utils/messages";
 import {CacheProvider} from "@emotion/react";
 import {useNProgress} from "@components/hooks/use-nprogress";
@@ -35,9 +36,7 @@ import {AdapterDateFns} from "@mui/x-date-pickers/AdapterDateFns";
 import {ThemedLayoutV2} from "@components/layout";
 import createCache from "@emotion/cache";
 import {dataProvider} from "src/analysis-data-provider";
-import { createAction, useRegisterActions } from "@refinedev/kbar";
-
-const API_URL = "http://127.0.0.1:8581";
+import {createActionsFromProject, CommandBar, createActionsFromNodes} from "@components/kbar";
 
 const clientSideEmotionCache = createCache({key: 'css'});
 
@@ -52,9 +51,9 @@ type AppPropsWithLayout = AppProps & {
 };
 
 function JinjatApp({Component, pageProps}: AppPropsWithLayout): JSX.Element {
-    const jinjatContext = jinjatProvider(API_URL);
+    let apiUrl = process.env.NEXT_PUBLIC_JINJAT_URL;
+    const jinjatContext = jinjatProvider(apiUrl);
     useNProgress();
-    // useKbarActions();
 
     const {
         data: project,
@@ -112,10 +111,14 @@ function JinjatApp({Component, pageProps}: AppPropsWithLayout): JSX.Element {
         );
     };
 
+    const resourceActions = createActionsFromProject(project!!)
+
     return <>
         <CacheProvider value={clientSideEmotionCache}>
             <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <RefineKbarProvider>
+                <QueryClientProvider client={queryClient}>
+                    <KBarProvider actions={resourceActions}>
+                        <CommandBar/>
                         <ColorModeContextProvider>
                             <CssBaseline/>
                             <GlobalStyles styles={{html: {WebkitFontSmoothing: "auto"}}}/>
@@ -124,7 +127,7 @@ function JinjatApp({Component, pageProps}: AppPropsWithLayout): JSX.Element {
                                     {/*<DevtoolsProvider>*/}
                                     <Refine
                                         routerProvider={routerProvider}
-                                        dataProvider={dataProvider(API_URL)}
+                                        dataProvider={dataProvider(apiUrl)}
                                         notificationProvider={notificationProvider}
                                         authProvider={authProvider}
                                         resources={resources}
@@ -137,7 +140,6 @@ function JinjatApp({Component, pageProps}: AppPropsWithLayout): JSX.Element {
                                         }}
                                     >
                                         {renderComponent()}
-                                        <RefineKbar/>
                                         <UnsavedChangesNotifier/>
                                     </Refine>
                                     {/*<DevtoolsPanel/>*/}
@@ -145,7 +147,8 @@ function JinjatApp({Component, pageProps}: AppPropsWithLayout): JSX.Element {
                                 </JinjatServiceContextProvider>
                             </RefineSnackbarProvider>
                         </ColorModeContextProvider>
-                    </RefineKbarProvider>
+                    </KBarProvider>
+                </QueryClientProvider>
             </LocalizationProvider>
         </CacheProvider>
     </>;

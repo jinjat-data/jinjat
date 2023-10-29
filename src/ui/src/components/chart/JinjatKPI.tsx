@@ -1,8 +1,12 @@
 import React from "react";
-import {JinjatEChartsProps} from "@components/crud/utils";
 import {Box} from '@mui/material';
+import {JinjatDataset} from "@components/crud/utils";
 
-export const JinjatKPI: React.FC<JinjatEChartsProps> = ({
+export interface JinjatKPIProps {
+    dataset: JinjatDataset;
+}
+
+export const JinjatKPI: React.FC<JinjatKPIProps> = ({
                                                             dataset,
                                                             options,
                                                             theme,
@@ -36,3 +40,5 @@ export const JinjatKPI: React.FC<JinjatEChartsProps> = ({
         </Box>
     </Box>
 }
+
+JinjatKPI.displayName = "KPI"
