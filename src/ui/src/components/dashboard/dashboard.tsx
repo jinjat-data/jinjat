@@ -1,21 +1,16 @@
-import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
-import styles from './dashboard.module.css';
-import {Responsive, WidthProvider} from "react-grid-layout";
-
 import React, {useEffect, useState} from "react";
 import {JinjatExposureProps} from "@components/crud/utils";
 import {useJinjatProvider} from "@components/hooks/useSchemaProvider";
 import {DashboardItem} from "@components/hooks/schema";
-import {findComponentByName} from "../../interfaces/createComponents";
-
-const ResponsiveGridLayout = WidthProvider(Responsive);
+import {allComponents} from "../../interfaces/createComponents";
+import Grid from '@mui/material/Unstable_Grid2';
+import {ErrorBoundary} from "react-error-boundary";
+import {Alert, AlertTitle} from "@mui/material";
+import Paper from "@mui/material/Paper";
 
 export const JinjatDashboard: React.FC<JinjatExposureProps> = ({packageName, exposure}) => {
     const [items, setItems] = useState<Array<DashboardItem>>()
-
     const schemaProvider = useJinjatProvider();
-
     const dashboard = schemaProvider.getDashboard(packageName, exposure)
 
     useEffect(() => {
@@ -27,29 +22,37 @@ export const JinjatDashboard: React.FC<JinjatExposureProps> = ({packageName, exp
         })
     }, [])
 
-    if(items == null) {
+    if (items == null) {
         return <div>Loading..</div>
     }
 
+    function findComponentByName(componentName: string): any {
+        const internalComponentName = Object.keys(allComponents).find(name => name.toLowerCase() === componentName.toLowerCase());
+        return allComponents[internalComponentName!!]
+    }
+
+    function fallbackRender({error, resetErrorBoundary}) {
+        return (
+            <Alert severity="error">
+                <AlertTitle>Unable to render component</AlertTitle>
+                {error.message}
+            </Alert>
+        );
+    }
+
     return (
-        <ResponsiveGridLayout
-            className="layout"
-            cols={{lg: 10, md: 8, sm: 6, xs: 4, xxs: 2}}
-            rowHeight={90}
-            containerPadding={[10, 10]}
-            margin={[10, 10]}
-            isDraggable={false}
-            isResizable={false}
-        >
+        <Grid container spacing={2} columns={16}>
             {items.map((val, idx) => {
                 // @ts-ignore
                 const ComponentToRender = findComponentByName(val.component.name);
-
-                debugger
-                return <div key={idx} data-grid={{x: idx, y: idx, w: 2, h: 2}} className={styles.dashboardItem}>
-                    <ComponentToRender {...val.component.arguments} />
-                </div>;
+                return <Grid key={idx} xs={val.width} md={val.width}>
+                    <Paper variant={'outlined'}>
+                        <ErrorBoundary FallbackComponent={fallbackRender}>
+                            <ComponentToRender {...val.component.arguments} />
+                        </ErrorBoundary>
+                    </Paper>
+                </Grid>
             })}
-        </ResponsiveGridLayout>
+        </Grid>
     )
 }

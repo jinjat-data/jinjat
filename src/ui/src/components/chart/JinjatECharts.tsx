@@ -21,7 +21,6 @@ export const JinjatECharts: React.FC<JinjatEChartsProps> = ({
                                                             }) => {
     // @ts-ignore
     const isRenderable = memoize(() => (Array.isArray(options?.dataset) && options?.dataset[0]?.source == null) || (options?.dataset?.source == null))
-
     const { data, isLoading, isError } = useCustom<[]>({
         url: `/_analysis/${dataset.analysis}`,
         method: "get",

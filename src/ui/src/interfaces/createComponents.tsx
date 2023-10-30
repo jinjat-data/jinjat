@@ -101,16 +101,7 @@ export const muiComponents = {
 };
 export const jinjatComponents = {Observe};
 
-type GenericObject = { [key: string]: any };
-export const allComponents: GenericObject = {...muiComponents, ...jinjatComponents, ...allChartComponents}
-
-
-const allComponentNames = Object.keys(allComponents)
-
-export function findComponentByName(name: string): any {
-    const componentName = allComponentNames.find(name => name.toLowerCase() === name.toLowerCase());
-    return allComponents[componentName!!]
-}
+export const allComponents = {...muiComponents, ...jinjatComponents, ...allChartComponents}
 
 const exposureIcons = {
     "create": BarsArrowUpIcon,
