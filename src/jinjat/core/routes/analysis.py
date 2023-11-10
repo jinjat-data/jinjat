@@ -2,30 +2,34 @@ import functools
 import itertools
 import json
 import re
-import typing
 from copy import deepcopy
 from pathlib import Path
 from typing import List, Optional, Callable
 
 import jmespath
 import jsonref
+from dbt.contracts.graph.nodes import AnalysisNode
 from dbt.node_types import NodeType
 from deepmerge import always_merger
 from fastapi import FastAPI
+from fastapi.openapi.constants import METHODS_WITH_BODY
 from fastapi.openapi.models import Schema, Response as APIResponse, Operation, RequestBody, MediaType
 from fastapi.openapi.utils import get_openapi
 from openapi_schema_pydantic import Parameter
 from pydantic import ValidationError
+from starlette import status
 from starlette.requests import Request
 from starlette.responses import JSONResponse, Response
 
 from jinjat.core.dbt.dbt_project import DbtProject
-from jinjat.core.exceptions import InvalidJinjaConfig
+from jinjat.core.exceptions import InvalidJinjaConfig, ExecuteSqlFailure
 from jinjat.core.models import generate_dbt_context_from_request, JinjatExecutionResult, JinjatAnalysisConfig, \
-    JinjatProjectConfig, JSON_COLUMNS_QUERY_PARAM, RequestSchema, ResponseSchema
+    JinjatProjectConfig, JSON_COLUMNS_QUERY_PARAM
 from jinjat.core.routes.admin import _execute_jinjat_query
+from jinjat.core.schema.data_type import get_json_schema_from_data_type
 from jinjat.core.util.api import get_human_readable_error, rapidoc_html, register_jsonapi_exception_handlers, \
-    CustomButton, register_openapi_validators, unregister_openapi_validators, extract_key_value_pairs
+    CustomButton, unregister_openapi_validators, extract_key_value_pairs, \
+    JinjatErrorContainer, convert_openapi_ref, JinjatError, JinjatErrorCode, QueryError
 from jinjat.core.util.jmespath import extract_jmespath
 
 ANALYSIS_FILE_PATH_REGEX = re.compile(r"^analysis\/(.*)\.sql$")
@@ -33,33 +37,46 @@ ANALYSIS_FILE_PATH_REGEX = re.compile(r"^analysis\/(.*)\.sql$")
 
 async def handle_analysis_api(project: DbtProject,
                               sql: str,
-                              openapi: dict,
+                              operation: Operation,
+                              openapi_dict: dict,
                               transform_request: Callable[[dict], dict],
                               transform_response: Callable[[dict], dict],
                               fetch: bool,
                               jinjat_project: JinjatProjectConfig,
                               request: Request,
                               response: Response):
-    context = await generate_dbt_context_from_request(request, openapi, transform_request)
+    context = await generate_dbt_context_from_request(request, openapi_dict, transform_request)
     limit = request.query_params.get('_limit')
     end = request.query_params.get('_end')
     start = request.query_params.get('_start')
     if limit is None and (start is not None and end is not None):
         limit = int(end) - int(start)
-    query_result = await _execute_jinjat_query(project, project.execute_sql, sql, context,
-                                               limit, fetch, include_total=end is not None)
-    json_cols = json.loads(request.query_params.get(JSON_COLUMNS_QUERY_PARAM) or '[]')
-    jinjat_result = JinjatExecutionResult.from_dbt(context, query_result, transform_response, json_cols)
-    if query_result.total_rows is not None:
-        response.headers['x-total-count'] = str(query_result.total_rows)
-
+    try:
+        query_result = await _execute_jinjat_query(project, project.execute_sql, sql, context,
+                                                   limit, fetch, include_total=end is not None)
+        json_cols = json.loads(request.query_params.get(JSON_COLUMNS_QUERY_PARAM) or '[]')
+        jinjat_result = JinjatExecutionResult.from_dbt(context, query_result, transform_response, json_cols)
+        if query_result.total_rows is not None:
+            response.headers['x-total-count'] = str(query_result.total_rows)
+    except ExecuteSqlFailure as execution_err:
+        jinjat_result = JinjatExecutionResult(request=context, compiled_sql=execution_err.compiled_sql, raw_sql=sql,
+                                              error=str(execution_err.dbt_exception))
     if context.is_debug_enabled():
         return jinjat_result
+    elif jinjat_result.error is not None:
+        raise JinjatErrorContainer(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            errors=[JinjatError(
+                code=JinjatErrorCode.ExecuteSqlFailure,
+                message=jinjat_result.error,
+                error=QueryError(sql=sql, compiled_sql=jinjat_result.compiled_sql)
+            )]
+        )
     else:
         return jinjat_result.data
 
 
-def create_components_from_nodes(project: DbtProject):
+def create_components_from_nodes(project: DbtProject, request: Request):
     schema_nodes = filter(
         lambda node: node.resource_type in ['model', 'seed', 'source', 'analysis'] and (
                 'jinjat' in node.meta or 'jinjat' in node.config),
@@ -67,18 +84,24 @@ def create_components_from_nodes(project: DbtProject):
 
     components = {}
     for node in schema_nodes:
-        jinjat = node.config.meta.get('jinjat')
-        if jinjat is not None and 'schema' in jinjat:
-            schema = Schema.parse_obj(jinjat.get('schema'))
+        node_jinjat = node.config.meta.get('jinjat')
+        if node_jinjat is not None and 'schema' in node_jinjat:
+            schema = Schema.parse_obj(node_jinjat.get('schema'))
         else:
             schema = Schema(type='object')
         schema.properties = {}
         for column in node.columns.values():
-            openapi = column.meta.get('jinjat', {}).get('schema')
-            if openapi is None:
-                col_schema = Schema()
+            jinjat = column.meta.get('jinjat', {})
+            openapi = jinjat.get('schema')
+            default_col_schema = get_json_schema_from_data_type(project, column.data_type)
+            if openapi is not None:
+                col_schema = Schema.parse_obj(always_merger.merge(default_col_schema.dict(exclude_unset=True), openapi))
             else:
-                col_schema = Schema.parse_obj(openapi)
+                col_schema = default_col_schema
+            if jinjat.get('enum') is not None:
+                # project.get_ref_node('analysis.snowflake_admin._get_tasks')
+                # project.execute_sql()
+                pass
             col_schema.description = col_schema.description or column.description
             schema.properties[column.name] = col_schema
         components[node.unique_id] = schema.dict(exclude_unset=True)
@@ -131,7 +154,7 @@ async def custom_openapi(project, jinjat_project_config, api, package_name, req:
                                  routes=api.routes,
                                  servers=servers)
 
-    component_schemas = create_components_from_nodes(project)
+    component_schemas = create_components_from_nodes(project, req)
     components = openapi_schema.setdefault('components', {})
     existing_schemas = components.setdefault('schemas', {})
     components['schemas'] = {**existing_schemas, **component_schemas}
@@ -146,24 +169,41 @@ async def custom_openapi(project, jinjat_project_config, api, package_name, req:
     return JSONResponse(extract_jmespath(extract_path, openapi_schema, project))
 
 
-def enrich_openapi_schema(project: DbtProject, openapi: Operation, request: RequestSchema, response: ResponseSchema):
-    if request.body is not None:
-        openapi.requestBody = RequestBody(content={"application/json": MediaType(schema=request.body)})
-    if response.content is not None:
-        response_body_schema = get_final_response(response.transform, response.content)
-        openapi.responses = {response.status: APIResponse(description=response.description,
-                                                          content={"application/json": MediaType(
-                                                              schema=response_body_schema)})}
+def enrich_openapi_schema(project: DbtProject, openapi: Operation, config: JinjatAnalysisConfig, node: AnalysisNode):
+    if config.request is not None and config.request.body is not None:
+        openapi.requestBody = RequestBody(content={"application/json": MediaType(schema=config.request.body)})
+    if config.response is not None and config.response.content is not None:
+        response_body_schema = get_final_response(config.response.transform, config.response.content)
+        openapi.responses = {config.response.status: APIResponse(description=config.response.description,
+                                                                 content={"application/json": MediaType(
+                                                                     schema=response_body_schema)})}
 
-    openapi.parameters = (openapi.parameters or []) + (request.parameters or [])
+    elif node.columns:
+        openapi.responses = {config.response.status: APIResponse(description=config.response.description,
+                                                                 content={"application/json": MediaType(
+                                                                     schema=Schema(type="array", items=Schema(
+                                                                         ref=f"#/components/schemas/{node.unique_id}")
+                                                                                   ))})}
+
+    openapi.parameters = (openapi.parameters or []) + (config.request.parameters or [])
+
+
+def register_openapi_validators(project: DbtProject):
+    original_validators = Schema.__fields__.get("ref").post_validators or []
+    Schema.__fields__.get("ref").post_validators = original_validators + [
+        functools.partial(convert_openapi_ref, project.project_name)]
 
 
 def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: DbtProject) -> FastAPI:
-    analysis_nodes = filter(lambda
-                                node: node.resource_type == NodeType.Analysis.value
-                                      and node.language == 'sql'
-                                      and 'jinjat' in node.config.extra,
-                            project.dbt.nodes.values())
+    all_analysis_nodes = [node for node in project.dbt.nodes.values() if
+                          node.resource_type == NodeType.Analysis.value
+                          and node.language == 'sql'
+                          and 'jinjat' in node.config.extra]
+
+    analysis_nodes = [node for node in all_analysis_nodes if 'jinjat' in node.config.extra]
+    if len(all_analysis_nodes) > len(analysis_nodes):
+        pass
+
     nodes_by_packages = dict((k, list(map(lambda x: x, values))) for k, values in
                              itertools.groupby(sorted(analysis_nodes, key=lambda node: node.package_name),
                                                lambda node: node.package_name))
@@ -183,11 +223,13 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
             analysis_name = f'{project.project_name}.{analysis_name}'
         analysis_func = analysis_lookup.get("analysis." + analysis_name)
         if analysis_func is None:
-            response.status_code = 404
+            raise JinjatErrorContainer(
+                status_code=status.HTTP_404_NOT_FOUND,
+                errors=[JinjatError(code=JinjatErrorCode.Unknown, message=f"Analysis {analysis_name} not found!")])
         else:
             return await analysis_func(request, response)
 
-    api.add_api_route("/_analysis/{id}{rest_of_path:path}", endpoint=lookup_by_id)
+    api.add_api_route("/_analysis/{id}{rest_of_path:path}", endpoint=lookup_by_id, methods=METHODS_WITH_BODY)
 
     for package_name, analyses in nodes_by_packages.items():
         sub_app = FastAPI(redoc_url=None, docs_url=None, openapi_url=None)
@@ -206,11 +248,11 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
                 jinjat_config = JinjatAnalysisConfig()
             else:
                 try:
-                    jinjat_config = JinjatAnalysisConfig.parse_obj(node.config.extra['jinjat'])
+                    jinjat_config = JinjatAnalysisConfig.parse_obj(node.config.extra['jinjat'] or {})
                 except ValidationError as e:
                     raise InvalidJinjaConfig(node.patch_path, node.original_file_path, get_human_readable_error(e))
 
-            methods = [jinjat_config.method] if jinjat_config.method is not None else None
+            methods = [jinjat_config.method] if jinjat_config.method is not None else ["GET"]
             openapi = jinjat_config.openapi
             fetch_enabled = jinjat_config.fetch
 
@@ -230,7 +272,7 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
                                                     schema=Schema(type='string').dict(by_alias=True,
                                                                                       exclude_none=True)))
 
-            enrich_openapi_schema(project, openapi, jinjat_config.request, jinjat_config.response)
+            enrich_openapi_schema(project, openapi, jinjat_config, node)
 
             # ctx = generate_parser_model_context(node, project.config, project.dbt,
             #                                     ContextConfig(project.config, node.fqn, node.resource_type,
@@ -247,13 +289,14 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
                 raise InvalidJinjaConfig(node.original_file_path, None,
                                          f"Unable to parse `transform_request` jmespath expression {jinjat_config.request.transform}: {e}")
 
+            transform = None if jinjat_config.response is None else jinjat_config.response.transform
             try:
-                transform_response = compile_transform(jinjat_config.response.transform)
+                transform_response = compile_transform(transform)
             except Exception as e:
                 raise InvalidJinjaConfig(node.original_file_path, None,
                                          f"Unable to parse `transform_response` jmespath expression {jinjat_config.response.transform}: {e}")
 
-            endpoint = functools.partial(handle_analysis_api, project, node.raw_code, openapi_dict, transform_request,
+            endpoint = functools.partial(handle_analysis_api, project, node.raw_code, openapi, openapi_dict, transform_request,
                                          transform_response, fetch_enabled, jinjat_project_config)
             analysis_lookup[node.unique_id] = endpoint
             sub_app.add_api_route(f'/{package_name}/{project.config.dependencies[package_name].version}/{api_path}',

@@ -97,7 +97,6 @@ function JinjatApp({Component, pageProps}: AppPropsWithLayout): JSX.Element {
     }
 
     let resources = createResources(project!!);
-    console.log(resources);
     const renderComponent = () => {
         if (Component.noLayout) {
             // @ts-ignore

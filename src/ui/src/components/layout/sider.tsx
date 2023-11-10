@@ -23,7 +23,6 @@ import Dashboard from "@mui/icons-material/Dashboard";
 import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import ListOutlined from "@mui/icons-material/ListOutlined";
-import Logout from "@mui/icons-material/Logout";
 import Box from "@mui/material/Box";
 import Collapse from "@mui/material/Collapse";
 import Drawer from "@mui/material/Drawer";
@@ -39,9 +38,7 @@ import {defaultIcon, defaultText, ThemedTitleV2} from "@components/layout/title"
 import NextLink from "next/link";
 import {Button, ButtonBase, Divider, NativeSelect, Stack, SvgIcon, Typography} from "@mui/material";
 import ChevronUpDownIcon from "@heroicons/react/24/solid/ChevronUpDownIcon";
-import {items} from "../../devias/layouts/dashboard/config";
-import {SideNavItem} from "../../devias/layouts/dashboard/side-nav-item";
-import ArrowTopRightOnSquareIcon from "@heroicons/react/24/solid/ArrowTopRightOnSquareIcon";
+import _ from "lodash";
 
 export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
                                                                             Title: TitleFromProps,
@@ -70,13 +67,8 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
     const translate = useTranslate();
 
     const {menuItems, selectedKey, defaultOpenKeys} = useMenu({meta});
-    const isExistAuthentication = useIsExistAuthentication();
     const TitleFromContext = useTitle();
-    const authProvider = useActiveAuthProvider();
-    const {warnWhen, setWarnWhen} = useWarnAboutChange();
-    const {mutate: mutateLogout} = useLogout({
-        v3LegacyAuthProviderCompatible: Boolean(authProvider?.isLegacy),
-    });
+
 
     const [open, setOpen] = useState<{ [k: string]: any }>({});
 
@@ -265,7 +257,7 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
                                         })
                                     }}
                                 >
-                                    {meta?.label}
+                                    {_.capitalize(meta?.label)}
                                 </Box>
                             </Button>
                         </li>
@@ -321,59 +313,7 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
         </CanAccess>
     ) : null;
 
-    const handleLogout = () => {
-        if (warnWhen) {
-            const confirm = window.confirm(
-                t(
-                    "warnWhenUnsavedChanges",
-                    "Are you sure you want to leave? You have unsaved changes."
-                )
-            );
 
-            if (confirm) {
-                setWarnWhen(false);
-                mutateLogout();
-            }
-        } else {
-            mutateLogout();
-        }
-    };
-
-    const logout = isExistAuthentication && (
-        <Tooltip
-            title={t("buttons.logout", "Logout")}
-            placement="right"
-            disableHoverListener={!siderCollapsed}
-            arrow
-        >
-            <ListItemButton
-                key="logout"
-                onClick={() => handleLogout()}
-                sx={{
-                    justifyContent: "center",
-                }}
-            >
-                <ListItemIcon
-                    sx={{
-                        justifyContent: "center",
-                        minWidth: "24px",
-                        transition: "margin-right 0.3s",
-                        marginRight: siderCollapsed ? "0px" : "12px",
-                        color: "currentColor",
-                    }}
-                >
-                    <Logout/>
-                </ListItemIcon>
-                <ListItemText
-                    primary={t("buttons.logout", "Logout")}
-                    primaryTypographyProps={{
-                        noWrap: true,
-                        fontSize: "14px",
-                    }}
-                />
-            </ListItemButton>
-        </Tooltip>
-    );
 
     const items = renderTreeView(menuItems, selectedKey);
 
@@ -381,8 +321,8 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
         if (render) {
             return render({
                 dashboard,
-                logout,
                 items,
+                logout: null,
                 collapsed: siderCollapsed,
             });
         }
@@ -390,7 +330,6 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
             <>
                 {dashboard}
                 {items}
-                {logout}
             </>
         );
     };
@@ -546,10 +485,6 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
                                     >
                                         {defaultText}
                                     </Typography>
-                                    <Typography
-                                        color="neutral.400"
-                                        variant="body2"
-                                    >
 
                                         <NativeSelect
                                             sx={{
@@ -563,7 +498,6 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
                                         >
                                             <option value={"dev"}>Development</option>
                                         </NativeSelect>
-                                    </Typography>
                                 </div>
                                 <SvgIcon
                                     fontSize="small"

@@ -16,7 +16,6 @@ export const dataProvider = (
 > => ({
   getList: async ({ resource, pagination, filters, sorters, meta }) => {
     const url = `${apiUrl}/${resource}`;
-
     const { current = 1, pageSize = 10, mode = "server" } = pagination ?? {};
 
     const { headers: headersFromMeta, method } = meta ?? {};
@@ -43,6 +42,7 @@ export const dataProvider = (
       query._order = _order.join(",");
     }
 
+    debugger
     const { data, headers } = await httpClient[requestMethod](
       `${url}?${stringify(query)}&${stringify(queryFilters)}`,
       {
@@ -144,6 +144,7 @@ export const dataProvider = (
     query,
     headers,
   }) => {
+    debugger
     let requestUrl = `${apiUrl}${url}?`;
 
     if (sorters) {

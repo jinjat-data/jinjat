@@ -15,6 +15,8 @@ import {alpha} from "@mui/material/styles";
 import UsersIcon from "@heroicons/react/24/solid/UsersIcon";
 import BellIcon from "@heroicons/react/24/solid/BellIcon";
 import {useKBar} from "kbar";
+import {AccountPopover} from "../../devias/layouts/dashboard/account-popover";
+import {usePopover} from "../../devias/hooks/use-popover";
 
 export const ThemedHeaderV2: React.FC<RefineThemedLayoutV2HeaderProps> = ({
   sticky,
@@ -24,6 +26,7 @@ export const ThemedHeaderV2: React.FC<RefineThemedLayoutV2HeaderProps> = ({
     v3LegacyAuthProviderCompatible: Boolean(authProvider?.isLegacy),
   });
   const { query } = useKBar();
+  const accountPopover = usePopover();
 
   return (
     <AppBar position={sticky ? "sticky" : "relative"} color={'inherit'}
@@ -54,13 +57,15 @@ export const ThemedHeaderV2: React.FC<RefineThemedLayoutV2HeaderProps> = ({
             justifyContent="flex-end"
             alignItems="center"
         >
-          <Tooltip title="Contacts">
             <IconButton>
-              <SvgIcon fontSize="small">
+              <SvgIcon fontSize="small" onClick={accountPopover.handleOpen}
+                       ref={accountPopover.anchorRef}
+                       sx={{
+                         cursor: 'pointer'
+                       }}>
                 <UsersIcon />
               </SvgIcon>
             </IconButton>
-          </Tooltip>
           <Tooltip title="Notifications">
             <IconButton>
               <Badge
@@ -76,6 +81,11 @@ export const ThemedHeaderV2: React.FC<RefineThemedLayoutV2HeaderProps> = ({
           </Tooltip>
           {user?.avatar && <Avatar src={user?.avatar} alt={user?.name} />}
         </Stack>
+        <AccountPopover
+            anchorEl={accountPopover.anchorRef.current}
+            open={accountPopover.open}
+            onClose={accountPopover.handleClose}
+        />
       </Toolbar>
     </AppBar>
   );

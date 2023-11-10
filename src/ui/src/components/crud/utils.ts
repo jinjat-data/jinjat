@@ -1,12 +1,15 @@
 import {RefineResource} from "@components/hooks/schema";
+import {DataGridProps} from "@mui/x-data-grid/models/props/DataGridProps";
+import {JinjatJsonFormsInitStateProps} from "../../jsonforms/JinjatForm";
 
-export interface JinjatFormProps {
+export interface JinjatFormProps  {
     packageName: string;
     version: string;
-    resources: RefineResource,
+    resources: RefineResource<string>;
     params?: string;
-    title?: string,
-    logo?: React.ReactNode
+    title?: string;
+    logo?: React.ReactNode;
+    form?: Omit<JinjatJsonFormsInitStateProps<any>, 'data' | 'schema'>;
 }
 
 
@@ -16,6 +19,7 @@ export interface JinjatExposureProps {
 }
 
 export interface JinjatListProps extends JinjatFormProps {
+    datagrid?: DataGridProps
     enableActions: boolean
 }
 

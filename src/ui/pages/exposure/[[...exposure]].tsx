@@ -15,9 +15,6 @@ export default function ExposurePage() {
 
     const router = useRouter()
     const {exposure} = router.query
-    if(exposure == null) {
-        debugger
-    }
     let [package_name, version, name, action, id] = exposure
 
     const {resource} = useResource(`exposure.${package_name}.${name}`);
@@ -46,12 +43,14 @@ export default function ExposurePage() {
                 resources = {}
                 resources[action] = analysis_name
             }
+
             return <JinjatComponent packageName={package_name}
                                     resources={resources}
                                     action={action}
                                     exposure={name}
                                     params={id}
-                                    version={version}/>
+                                    version={version}
+                                    {...(resource?.meta?.jinjat?.refine?.props?.[action] || {})}/>
         }
     } else {
         if (false) {
@@ -75,7 +74,8 @@ export default function ExposurePage() {
                                    logo={resource?.meta?.jinjat.logo || <div/>} packageName={package_name}
                                    resources={{list: analysis_name}}
                                    enableActions={false}
-                                   version={version}/>
+                                   version={version}
+                                   {...resource?.meta?.jinjat?.refine?.props.get} />
             } else {
                 return <JinjatCreate title={resource?.meta?.label || exposure[1]}
                                      logo={resource?.meta?.jinjat.logo || <div/>} packageName={package_name}
@@ -84,9 +84,11 @@ export default function ExposurePage() {
             }
         } else if (type == 'application') {
             let analysis = resource?.meta?.jinjat.refine.resources?.list;
+
             return <JinjatList packageName={package_name} resources={{list: analysis || analysis_name}}
                                enableActions={true}
-                               version={version}/>
+                               version={version}
+                               {...resource?.meta?.jinjat?.refine?.props?.list}/>
         } else if (type == 'dashboard') {
             return <JinjatDashboard packageName={package_name} exposure={analysis_name}/>
         } else if (type == 'notebook') {

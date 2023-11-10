@@ -3,10 +3,22 @@ import {List, useDataGrid, EditButton, ShowButton, DeleteButton} from "@refinede
 import {DataGrid, GridToolbar, GridValueFormatterParams, GridNativeColTypes, GridColDef} from "@mui/x-data-grid";
 import {HttpError, Option} from "@refinedev/core";
 import {Type, useSchema} from "@components/hooks/useSchema";
-import {JsonSchema} from "@jsonforms/core";
-import {JinjatFormProps, JinjatListProps} from "@components/crud/utils";
+import {Generate, JsonSchema} from "@jsonforms/core";
+import {JinjatListProps} from "@components/crud/utils";
+import {fmt} from "@components/chart/formatting";
+import {JinjatJsonSchema} from "@components/hooks/schema";
+import {Skeleton} from "@mui/material";
+import {actionsColumn, getDataGridType} from "../../utils/grid";
 
-export const JinjatList: React.FC<JinjatListProps> = ({packageName, version, resources, enableActions, logo, title}) => {
+export const JinjatList: React.FC<JinjatListProps> = ({
+                                                          packageName,
+                                                          version,
+                                                          resources,
+                                                          enableActions,
+                                                          logo,
+                                                          title,
+                                                          ...props
+                                                      }) => {
     let analysis = resources.list;
     if (analysis == null) {
         return <div>Unable to fetch schema</div>;
@@ -15,103 +27,111 @@ export const JinjatList: React.FC<JinjatListProps> = ({packageName, version, res
     const {dataGridProps} = useDataGrid({
         syncWithLocation: true,
         resource: `_analysis/${packageName}.${analysis}`,
+        meta: {
+            _json_columns: ['columns']
+        },
         pagination: {
             mode: 'server'
         }
     });
 
-    const {data: jinjatSchema, isLoading, isError} = useSchema<JsonSchema, HttpError>({
+    const {data: jinjatSchema, isLoading: isSchemaLoading, isError: isSchemaError} = useSchema<JsonSchema, HttpError>({
         analysis: `${packageName}.${analysis}`,
         config: {type: Type.RESPONSE}
     })
 
-    if (isLoading) {
-        return <div>Loading...</div>;
+    const properties = React.useMemo<JinjatJsonSchema>(() => {
+        let schemaProperties = jinjatSchema?.schema?.items?.properties;
+        if (schemaProperties != null) {
+            return schemaProperties
+        }
+        if (dataGridProps.rows?.length > 0) {
+            return Generate.jsonSchema(dataGridProps.rows[0]).properties;
+        } else {
+            return null
+        }
+    }, [jinjatSchema, dataGridProps])
+
+    const rowIdColumn = React.useMemo(() => {
+        let rowIdColumn = jinjatSchema?.schema?.items?.['x-pk'];
+        if (rowIdColumn != null || properties == null) {
+            return rowIdColumn
+        }
+
+        let objectKeys = Object.keys(properties);
+        const pkColumn  = objectKeys.find(key => properties[key]['x-pk'] === true)
+        if(pkColumn != null) {
+            return pkColumn
+        }
+
+        return objectKeys.find(prop => prop.toLowerCase() == 'id')
+    }, [jinjatSchema])
+
+    const allColumns = React.useMemo(() => {
+        if (properties == null) {
+            return null
+        }
+        const fieldColumns = Object.entries(properties).map(([key, value]) => (
+                {
+                    field: key,
+                    headerName: value.label || key,
+                    type: getDataGridType(value.type),
+                    filterable: value.filterable,
+                    description: value.description,
+                    resizable: value.resizable,
+                    sortable: value.sortable,
+                    headerAlign: rowIdColumn == key ? "left" : undefined,
+                    align: rowIdColumn == key ? "left" : undefined,
+                    valueFormatter: (params: GridValueFormatterParams<Option>) => {
+                        return fmt(params.value, 'auto');
+                    },
+                    flex: 1,
+                    renderCell: function render({row}) {
+                        if (isSchemaLoading) {
+                            return "Loading...";
+                        }
+
+                        return row[key]
+                    },
+                } as GridColDef
+            )
+        )
+
+        return enableActions && rowIdColumn != null ? [
+            ...fieldColumns,
+            actionsColumn(rowIdColumn),
+        ] : fieldColumns
+    }, [enableActions, properties, rowIdColumn])
+
+
+    if (isSchemaLoading || dataGridProps?.loading) {
+        return <Skeleton height={30}/>;
     }
 
-    if (isError) {
+    if (isSchemaError) {
         return <div>Something went wrong!</div>;
     }
 
-    if (jinjatSchema?.schema == null) {
-        return <div>Schema is not found!</div>;
+    if (allColumns == null) {
+        return <div>No data or schema found</div>;
     }
-
-    const getDataGridType = (jinjatType: string): GridNativeColTypes => {
-        return 'string'
-    }
-
-    jinjatSchema.schema.items = jinjatSchema.schema.items || {}
-    // @ts-ignore
-    let rowIdColumn = jinjatSchema.schema.items['x-pk'];
-    // @ts-ignore
-    let properties = jinjatSchema.schema.items?.properties;
-
-    if (properties == null) {
-        return <div>Unable to infer schema!</div>;
-    }
-
-    const fieldColumns = Object.entries(properties).map(([key, value]) => (
-            {
-                field: key,
-                // @ts-ignore
-                headerName: value.label || key,
-                // @ts-ignore
-                type: getDataGridType(value.type),
-                // @ts-ignore
-                filterable: value.filterable,
-                // @ts-ignore
-                sortable: value.sortable,
-                headerAlign: rowIdColumn == key ? "left" : undefined,
-                align: rowIdColumn == key ? "left" : undefined,
-                flex: 1,
-                valueFormatter: (params: GridValueFormatterParams<Option>) => {
-                    return params.value;
-                },
-                renderCell: function render({row}) {
-                    if (isLoading) {
-                        return "Loading...";
-                    }
-
-                    return row[key]
-                },
-            } as GridColDef
-        )
-    )
-
-    const actionsColumn = {
-        field: "actions",
-        headerName: "Actions",
-        renderCell: function render({row}) {
-            let recordItemId = `id:${row[rowIdColumn]}`;
-            return (
-                <>
-                    <EditButton hideText recordItemId={recordItemId}/>
-                    <ShowButton hideText recordItemId={recordItemId}/>
-                    <DeleteButton hideText recordItemId={recordItemId}/>
-                </>
-            );
-        },
-        align: "center",
-        flex: 1,
-        headerAlign: "center",
-        minWidth: 80,
-    } as GridColDef;
-
-    const allColumns = enableActions ? [
-        ...fieldColumns,
-        actionsColumn,
-    ] : fieldColumns
 
     return (
-        <List title={title} logo={logo}>
-            <DataGrid {...dataGridProps} columns={allColumns} autoHeight getRowId={(row) => {
-                let rowElement = row[rowIdColumn];
-                if (rowElement == null) {
-                    rowElement = 0
-                }
-                return rowElement;
-            }} slots={{toolbar: GridToolbar}}/>
+        <List title={title}>
+            <DataGrid {...dataGridProps}
+                      columns={allColumns}
+                      sx={{overflowX: 'scroll'}}
+                      autoHeight
+                      getRowId={(row) => {
+                          let rowElement = row[rowIdColumn];
+                          if (rowElement == null) {
+                              rowElement = dataGridProps.rows.indexOf(row)
+                          }
+                          return rowElement;
+                      }}
+                      slots={{toolbar: GridToolbar}}
+                      {...props.datagrid}
+            />
         </List>
     );
 };

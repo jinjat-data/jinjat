@@ -13,10 +13,8 @@ from dbt.cli.option_types import YAML
 from jinjat.core.generator import compile_macro
 from jinjat.core.log_controller import logger
 from jinjat.core.server import DbtTarget, get_multi_tenant_app
-from jinjat.core.util.telemetry import record
 
 CONTEXT = {"max_content_width": 800}
-import sys
 
 
 @click.group()
@@ -145,16 +143,7 @@ def serve(
 
     dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target,
                            vars=yaml.load(vars, Loader=yaml.Loader), refine=refine)
-
-    server = multiprocessing.Process(target=run_server, args=(host, port, dbt_target))
-    server.start()
-
-    import atexit
-
-    atexit.register(lambda: server.terminate())
-
-    server.join()
-    sys.exit(server.exitcode)
+    run_server(host, port, dbt_target)
 
 
 def run_server(host="localhost", port=8581, target=DbtTarget):

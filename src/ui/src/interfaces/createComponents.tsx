@@ -28,6 +28,8 @@ import {JinjatEdit} from "@components/crud/edit";
 import {JinjatList} from "@components/crud/list";
 import {JinjatDashboard} from "@components/dashboard/dashboard";
 import {JinjatNotebook} from "@components/notebook/JinjatNotebook";
+import _ from "lodash";
+import AllHeroIcons from "@heroicons/react/24/outline"
 
 export const getScrollbarStyles = (palette: Palette) => ({
     '::-webkit-scrollbar': {
@@ -124,9 +126,23 @@ export const actions = {
 export function getIconForKeyword(value: string, fallbackComponent = WindowIcon): ReactNode | undefined {
     // @ts-ignore
     let Icon = exposureIcons[value];
+
+
     return <Icon/>;
 }
 
+
 export function getIconForResource(resource: JinjatResource): ReactNode | undefined {
+    let menuIcon = resource.jinjat.refine.menu_icon;
+    if (menuIcon?.startsWith('heroicons/')) {
+        const suffix = _.camelCase(menuIcon?.substring('heroicons/'.length));
+        const capitalizedSuffix = suffix.charAt(0).toUpperCase() + suffix.slice(1) + 'Icon'
+        let Component = AllHeroIcons[capitalizedSuffix]
+        if (Component == null) {
+            console.error(`Unable to find icon ${menuIcon}`)
+            Component = AllHeroIcons.QuestionMarkCircleIcon
+        }
+        return <Component/>
+    }
     return getIconForKeyword(resource?.jinjat?.refine?.layout || resource.type, WindowIcon);
 }

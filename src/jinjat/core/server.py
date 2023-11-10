@@ -2,9 +2,11 @@ import asyncio
 import functools
 import os
 import sys
+import time
 from typing import Optional
 
 import yaml
+from dbt.exceptions import DbtRuntimeError
 from deepmerge import always_merger
 from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
@@ -13,9 +15,10 @@ from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.routing import Mount
 from starlette.staticfiles import StaticFiles
-from watchdog.events import FileModifiedEvent, FileSystemEvent
+from watchdog.events import FileSystemEvent
 
 from jinjat.core.dbt.dbt_project import DbtProjectContainer, DbtProject, DbtTarget
+from jinjat.core.exceptions import InvalidJinjaConfig
 from jinjat.core.log_controller import logger
 from jinjat.core.models import JinjatProjectConfig
 from jinjat.core.routes.admin import app as admin_app
@@ -76,7 +79,7 @@ def custom_openapi(project, config):
     return app.openapi_schema
 
 
-def generate_app(config: JinjatProjectConfig, project: DbtProject, changed_file: Optional[str] = None) -> FastAPI:
+def generate_app(config: JinjatProjectConfig, project: DbtProject) -> FastAPI:
     analysis_app = create_analysis_apps(config, project)
 
     num_analyses = sum([len(sub_app.routes) for sub_app in analysis_app.routes[1:]])
@@ -84,11 +87,7 @@ def generate_app(config: JinjatProjectConfig, project: DbtProject, changed_file:
     if len(analysis_app.routes) == 0:
         logger().warning("Could not find any analysis found with `jinjat` config")
     else:
-        logger().info(f"{num_analyses} analysis found with `jinjat` config")
-
-    if changed_file is not None:
-        project.safe_parse_project()
-        unmount_app(analysis_app)
+        logger().info(f"Serving {num_analyses} analyses that have `jinjat` config")
 
     return analysis_app
 
@@ -104,6 +103,7 @@ def homepage_without_ui(host, project: DbtProject, dbt_target: DbtTarget) -> dic
 
 
 def mount_app(app: FastAPI, project: DbtProject, dbt_target: DbtTarget):
+    logger().info(f"start")
     config = get_jinjat_project_config(project.project_root)
 
     app.add_middleware(
@@ -114,23 +114,27 @@ def mount_app(app: FastAPI, project: DbtProject, dbt_target: DbtTarget):
         allow_headers=["*"],
         expose_headers=[DBT_PROJECT_HEADER, DBT_PROJECT_NAME]
     )
-
+    logger().info(f"start2")
     register_jsonapi_exception_handlers(app)
     app.openapi = lambda: custom_openapi(project, config)
 
     current_app = generate_app(config, project)
 
     def watch(event: FileSystemEvent):
-        relative_dir = os.path.relpath(event.src_path, project.project_root)
         logger().info(f"Reloading project, file changed: {event.src_path}")
-        project.safe_parse_project(reinit=True)
-        logger().info(f"Updating the endpoints")
-        new_app = generate_app(config, project, event.src_path)
-        for sub_app in current_app.routes[1:]:
-            current_app.routes.remove(sub_app)
-        for sub_app in new_app.routes[1:]:
-            current_app.mount(sub_app.path, sub_app)
-        logger().info(f"Server is updated")
+        try:
+            project.safe_parse_project(reinit=True)
+            project.parse_project()
+        except DbtRuntimeError as e:
+            logger().error(e)
+            return
+
+        try:
+            new_app = generate_app(config, project)
+        except InvalidJinjaConfig as e:
+            logger.error(e)
+            return
+        current_app.router.routes = new_app.router.routes
 
     filesystem.watch(project.project_root, watch)
 

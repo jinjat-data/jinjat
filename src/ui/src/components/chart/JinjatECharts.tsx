@@ -1,10 +1,14 @@
-import ReactECharts from "echarts-for-react";
 import React, {useMemo} from "react";
 import {useCustom} from "@refinedev/core";
-import * as echarts from "echarts";
+import dynamic from 'next/dynamic'
+
 import {memoize} from "lodash";
 import {JinjatDataset} from "@components/crud/utils";
-import PropTypes from "prop-types";
+
+
+const ReactEChartsComponent = dynamic(() => import('echarts-for-react'), {
+    ssr: false,
+})
 
 export interface JinjatEChartsProps {
     dataset: JinjatDataset;
@@ -61,7 +65,7 @@ export const JinjatECharts: React.FC<JinjatEChartsProps> = ({
     }
 
     return (
-        <ReactECharts
+        <ReactEChartsComponent.ReactECharts
             echarts={echarts}
             option={memoOptions}
             notMerge={true}

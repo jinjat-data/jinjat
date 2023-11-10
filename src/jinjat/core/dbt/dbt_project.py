@@ -1,7 +1,7 @@
 import sys
 
 import dbt.adapters.factory
-from dbt.exceptions import CompilationError
+from dbt.exceptions import CompilationError, DbtRuntimeError
 from pydantic import BaseModel
 
 from jinjat.core.exceptions import ExecuteSqlFailure
@@ -134,12 +134,8 @@ class DbtProject:
             self.config, self.config.load_dependencies(), self.adapter.connections.set_query_header
         )
         # endpatched (https://github.com/dbt-labs/dbt-core/blob/main/core/dbt/parser/manifest.py#L545)
-        try:
-            register_adapter(self.config)
-            self.dbt = project_parser.load()
-        except CompilationError as e:
-            logger().error(f"Encountered an error loading dbt module:\n{e}")
-            sys.exit(1)
+        register_adapter(self.config)
+        self.dbt = project_parser.load()
         self.dbt.build_flat_graph()
         project_parser.save_macros_to_adapter(self.adapter)
         self._sql_parser = None
@@ -254,12 +250,14 @@ class DbtProject:
             raise parse_error
         self.write_manifest_artifact()
 
-    def write_manifest_artifact(self) -> None:
-        """Write a manifest.json to disk"""
-        artifact_path = os.path.join(
+    def get_manifest_file_path(self):
+        return os.path.join(
             self.config.project_root, self.config.target_path, MANIFEST_FILE_NAME
         )
-        self.dbt.write(artifact_path)
+
+    def write_manifest_artifact(self) -> None:
+        """Write a manifest.json to disk"""
+        self.dbt.write(self.get_manifest_file_path())
 
     def clear_caches(self) -> None:
         """Clear least recently used caches and reinstantiable container objects"""
@@ -337,6 +335,7 @@ class DbtProject:
                 compiled_sql = compiled_node.compiled_sql
             except Exception as e:
                 raise ExecuteSqlFailure(raw_sql, None, e)
+        logger().debug(f"Executing:\n ${raw_sql}")
         try:
             table = self.adapter_execute(compiled_sql, fetch=fetch)
         except Exception as e:

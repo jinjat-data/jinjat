@@ -2,7 +2,7 @@ import React, {useEffect, useState} from "react";
 import {useJinjatProvider} from "@components/hooks/useSchemaProvider";
 import {DocFile} from "@components/hooks/schema";
 import {JinjatNotebookProps} from "@components/crud/utils";
-import {allComponents, utilityComponents} from "../../interfaces/createComponents";
+import {allComponents} from "../../interfaces/createComponents";
 import {serialize} from 'next-mdx-remote/serialize'
 import {MDXRemote, MDXRemoteSerializeResult} from 'next-mdx-remote'
 import {createState} from "mdx-state";
@@ -18,7 +18,6 @@ export const JinjatNotebook: React.FC<JinjatNotebookProps> = ({packageName, anal
         value: 42,
         value1: 1,
         key3: {nestedKey: "nestedValue"},
-        ...utilityComponents,
     };
 
     let promise: Promise<DocFile>

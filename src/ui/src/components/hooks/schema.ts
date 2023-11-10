@@ -7,13 +7,11 @@ enum FieldType {
     Boolean, Number, TimeDelta, Date, DateTime, Text
 }
 
-export interface RefineResource {
-    list?: string;
-    create?: string;
-    edit?: string;
-    show?: string;
-
-    [key: string]: any;
+export interface RefineResource<T> {
+    list?: T;
+    create?: T;
+    edit?: T;
+    show?: T;
 }
 
 interface RefineAction {
@@ -25,8 +23,9 @@ interface RefineAction {
 export type RefineConfig = {
     menu_icon?: string,
     actions?: RefineAction,
-    resources?: RefineResource,
+    resources?: RefineResource<string>,
     layout?: string
+    props: RefineResource<any>
 }
 
 export interface ExposureJinjatConfig {
@@ -109,9 +108,11 @@ export interface OpenAPIParameter {
     description?: string
 }
 
+export type JinjatJsonSchema = {"x-pk"?: string, "x-jsonforms"?: {renderer?: string}} & JsonSchema
+
 export interface JinjatSchema {
     parameters: Array<OpenAPIParameter>
-    schema: JsonSchema
+    schema: JinjatJsonSchema
 }
 
 export interface IJinjatContextProvider {

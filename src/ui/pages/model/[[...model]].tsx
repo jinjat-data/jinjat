@@ -1,9 +1,7 @@
 import {authCheck} from "../../src/authProvider";
 import {useRouter} from "next/router";
-import {useQuery} from "@tanstack/react-query";
 import {useJinjatProvider} from "@components/hooks/useSchemaProvider";
 import {JinjatList} from "@components/crud/list";
-import {JinjatCreate} from "@components/crud/create";
 import React from "react";
 import CodeBracketSquareIcon from '@heroicons/react/24/solid/CodeBracketSquareIcon';
 

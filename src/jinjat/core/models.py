@@ -18,6 +18,8 @@ from openapi_schema_pydantic import Operation
 from pydantic import BaseModel, validator
 from starlette.requests import Request
 
+from jinjat.core.util.api import JinjatErrorContainer, JinjatError
+
 LIMIT_QUERY_PARAM = '_limit'
 JSON_COLUMNS_QUERY_PARAM = '_json_columns'
 
@@ -87,7 +89,7 @@ async def generate_dbt_context_from_request(request: Request, openapi: dict = No
     else:
         body = None
     return DbtQueryRequestContext(method=request.method, body=body,
-                                  headers=request.headers,
+                                  headers=dict(request.headers.items()),
                                   params=request.path_params, query=request.query_params)
 
 
@@ -129,11 +131,12 @@ class JinjatColumn(BaseModel):
 class JinjatExecutionResult(BaseModel):
     """Interface for execution results, this keeps us 1 layer removed from dbt interfaces which may change"""
     request: DbtQueryRequestContext
-    adapter_response: JinjatAdapterResponse
-    columns: List[JinjatColumn]
-    data: Any
+    adapter_response: Optional[JinjatAdapterResponse]
+    columns: Optional[List[JinjatColumn]]
+    data: Optional[Any]
     raw_sql: str
-    compiled_sql: str
+    compiled_sql: Optional[str]
+    error: Optional[str]
 
     @staticmethod
     def from_dbt(ctx: DbtQueryRequestContext, result: DbtAdapterExecutionResult,

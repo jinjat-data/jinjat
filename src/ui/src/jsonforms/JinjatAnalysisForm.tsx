@@ -48,17 +48,17 @@ const JinjatAnalysisForm: React.FC<JinjatAnalysisFormProps> = ({parameters, acti
     }
 
     return (
-        <Card variant={'elevation'}>
+        <Card variant={'elevation'} sx={{backgroundColor :'neutral.50'}}>
             <CardContent>
                 {queryParamsSchema != null ? <div>
-                    <Typography variant="h5" ml={5} mt={0}>
+                    <Typography variant="subtitle2" style={{opacity: '0.3'}}>
                         query parameters
                     </Typography>
                     <JinjatForm data={queryParams} schema={queryParamsSchema} layout={'horizontal'} onChange={setQueryParams} />
                 </div> : null}
 
                 {pathParamsSchema != null ? <div>
-                    <Typography variant="h6">
+                    <Typography variant="subtitle2" style={{opacity: '0.3'}}>
                         path parameters
                     </Typography>
                     <JinjatForm data={pathParams} schema={pathParamsSchema} layout={'horizontal'} onChange={setPathParams}/>

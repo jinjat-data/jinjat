@@ -1,6 +1,5 @@
 import {CssBaseline, useMediaQuery} from "@mui/material";
 import { ThemeProvider } from "@mui/material/styles";
-import { RefineThemes } from "@refinedev/mui";
 import { parseCookies, setCookie } from "nookies";
 import React, {
   PropsWithChildren,

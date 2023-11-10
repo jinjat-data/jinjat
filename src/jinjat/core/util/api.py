@@ -1,12 +1,12 @@
 import functools
 import os
 import re
+import traceback
 import typing
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, List
 
-from dbt.exceptions import InvalidConnectionError
 from fastapi.openapi.models import Schema
 from starlette.exceptions import HTTPException as StarletteHttpException
 from fastapi.exceptions import HTTPException
@@ -17,7 +17,6 @@ from starlette.responses import HTMLResponse, Response, JSONResponse
 from starlette.staticfiles import StaticFiles, PathLike
 from starlette.types import Scope
 
-from jinjat.core.dbt.dbt_project import DbtProject
 from jinjat.core.log_controller import logger
 
 DBT_PROJECT_HEADER = 'x-dbt-project-version'
@@ -42,6 +41,10 @@ class JinjatErrorCode(int, Enum):
     SqlNotSupplied = 6
     JmesPathParseError = 7
 
+
+class QueryError(BaseModel):
+    sql: typing.Optional[str]
+    compiled_sql: typing.Optional[str]
 
 class JinjatError(BaseModel):
     code: JinjatErrorCode
@@ -185,6 +188,7 @@ def register_jsonapi_exception_handlers(app: Starlette):
             status_code = 500
             message = 'Internal server error'
             errors = [JinjatError(code=JinjatErrorCode.Unknown, message='Internal server error')]
+            traceback.print_exc()
             logger().exception(f"Unexpected exception while processing error", exc_info=exc)
 
         error_list = [error.dict() for error in errors]
@@ -266,10 +270,7 @@ def convert_openapi_ref(default_project: str, cls, value, parent, model, _):
     return f"#/components/schemas/{resource_type}.{package_name}.{name}"
 
 
-def register_openapi_validators(project: DbtProject):
-    original_validators = Schema.__fields__.get("ref").post_validators or []
-    Schema.__fields__.get("ref").post_validators = original_validators + [
-        functools.partial(convert_openapi_ref, project.project_name)]
+
 
 
 def unregister_openapi_validators():

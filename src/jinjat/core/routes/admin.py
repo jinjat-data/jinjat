@@ -43,14 +43,14 @@ class DbtAdhocQueryRequest(BaseModel):
 
 
 @app.get(
-    "/manifest.json"
+    "/manifest.json", response_model=None
 )
 async def execute_manifest_query(
         request: Request,
         response: Response,
         jmespath: Optional[str] = None,
         # x_dbt_project: Optional[str] = Header(default=None),
-) -> any:
+) -> dict:
     """Execute dbt SQL against a registered project as determined by X-dbt-Project header"""
     dbt_container: DbtProjectContainer = request.app.state.dbt_project_container
     project = dbt_container.get_project(None)
@@ -81,7 +81,17 @@ async def execute_sql(
     if project is None:
         raise jinjat_project_not_found_error()
 
-    dbt_result = await _execute_jinjat_query(project, project.execute_sql, body.sql, body.request, body.limit)
+    try:
+        dbt_result = await _execute_jinjat_query(project, project.execute_sql, body.sql, body.request, body.limit)
+    except ExecuteSqlFailure as execution_err:
+        raise JinjatErrorContainer(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            errors=[JinjatError(
+                code=JinjatErrorCode.ExecuteSqlFailure,
+                message=str(execution_err.dbt_exception),
+                error=execution_err.to_model()
+            )]
+        )
     json_cols = json.loads(request.query_params.get(JSON_COLUMNS_QUERY_PARAM) or '[]')
 
     return JinjatExecutionResult.from_dbt(body.request, dbt_result, json_columns=json_cols)
@@ -97,28 +107,18 @@ async def _execute_jinjat_query(project: DbtProject, execute_function, query: st
 
     loop = asyncio.get_running_loop()
 
-    try:
-        result = await loop.run_in_executor(
-            None, project.fn_threaded_conn(execute_function, final_query, ctx, fetch)
-        )
-        if include_total:
-            if limit is not None and len(result.table.rows) < limit:
-                size = len(result.table.rows)
-            else:
-                total_result_query = project.execute_macro('get_row_count_query', {"sql": query})
-                total_result_response = await loop.run_in_executor(
-                    None, project.fn_threaded_conn(execute_function, total_result_query, ctx, True))
-                size = int(total_result_response.table.rows[0]['count'])
-            result.total_rows = size
-    except ExecuteSqlFailure as execution_err:
-        raise JinjatErrorContainer(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            errors=[JinjatError(
-                code=JinjatErrorCode.ExecuteSqlFailure,
-                message=str(execution_err.dbt_exception),
-                error=execution_err.to_model()
-            )]
-        )
+    result = await loop.run_in_executor(
+        None, project.fn_threaded_conn(execute_function, final_query, ctx, fetch)
+    )
+    if include_total:
+        if limit is not None and len(result.table.rows) < limit:
+            size = len(result.table.rows)
+        else:
+            total_result_query = project.execute_macro('get_row_count_query', {"sql": query})
+            total_result_response = await loop.run_in_executor(
+                None, project.fn_threaded_conn(execute_function, total_result_query, ctx, True))
+            size = int(total_result_response.table.rows[0][0])
+        result.total_rows = size
 
     return result
 
