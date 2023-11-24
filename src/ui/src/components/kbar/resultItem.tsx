@@ -1,5 +1,6 @@
 import React from "react";
 import { ActionImpl, ActionId } from "kbar";
+import {Box} from "@mui/material";
 
 interface IResultITemProps {
     action: ActionImpl;
@@ -39,7 +40,19 @@ export const ResultItem = React.forwardRef<HTMLDivElement, IResultITemProps>(
                         fontSize: 14,
                     }}
                 >
-                    {action.icon && action.icon}
+                    {action.icon != null ? <Box
+                        component="div"
+                        sx={{
+                            width: 24,
+                            display: 'inline-flex',
+                            color: 'primary.main',
+                            ...(active && {
+                                color: 'primary.dark'
+                            })
+                        }}
+                    >
+                        {action.icon}
+                    </Box> : null}
                     <div style={{ display: "flex", flexDirection: "column" }}>
                         <div>
                             {ancestors.length > 0 &&

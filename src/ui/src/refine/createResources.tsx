@@ -1,9 +1,9 @@
 import {ResourceProps} from "@refinedev/core";
-import {JinjatProject, ResourceType} from "@components/hooks/schema";
+import {JinjatManifest, ResourceType} from "@components/hooks/schema";
 import {getIconForResource} from "../interfaces/createComponents";
 
 
-export function createResources({resources, version}: JinjatProject): ResourceProps[] {
+export function createResources({resources, version}: JinjatManifest): ResourceProps[] {
 
     return (resources || []).map(resource => {
         let name = `${resource.package_name}/${version}/${resource.name}`;

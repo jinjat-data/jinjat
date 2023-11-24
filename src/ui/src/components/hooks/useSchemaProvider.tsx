@@ -1,15 +1,18 @@
 import React, {ReactNode, useContext} from "react";
 
-import {DbtNode, IJinjatContextProvider, JinjatProject} from "./schema";
+import {DbtNode, IJinjatContextProvider, JinjatManifest} from "./schema";
 
 export const defaultSchemaProvider = () => {
     return {
         getResponseSchema: () => Promise.resolve({data: {type: "string"}}),
         getRequestSchema: () => Promise.resolve({data: {type: "string"}}),
-        getProject: () => Promise.resolve({resources: [], version: 'LOADING'}),
+        getManifest: () => Promise.resolve({resources: [], version: 'LOADING'}),
         getApiUrl: () => "",
+        getProject: () => Promise.resolve({}),
         getReadme: () => Promise.resolve({content: '', file_path: ''}),
-        getAllDbtNodes: () => Promise.resolve([])
+        getAllDbtNodes: () => {
+            return Promise.resolve([])
+        }
 } as unknown as IJinjatContextProvider;
 };
 

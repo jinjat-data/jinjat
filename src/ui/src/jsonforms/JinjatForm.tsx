@@ -6,7 +6,7 @@ import Ajv, {ErrorObject} from "ajv";
 import addFormats from 'ajv-formats';
 import _ from "lodash";
 import {Alert, AlertTitle} from "@mui/material";
-import {EditorCode} from "@components/pages/playground/editor-code";
+import {EditorCode} from "@components/code/editor-code";
 import * as YAML from 'yaml';
 
 let custom_modules = [
@@ -45,7 +45,7 @@ export interface JinjatJsonFormsInitStateProps<T> {
 
 export const JinjatForm: React.FC<JinjatJsonFormsInitStateProps<any>> = (props) => {
     const schema = React.useMemo(() => {
-        if (props.schema == null || Object.keys(props.schema).length == 0 || Object.keys(props.properties || {}).length === 0) {
+        if (props.schema == null || Object.keys(props.schema).length == 0 || Object.keys(props.schema.properties || {}).length === 0) {
             // workaround for https://github.com/eclipsesource/jsonforms/issues/2207
             let prunedData = Object.fromEntries(Object.entries(props.data).filter(([_, v]) => v != null));
             return Generate.jsonSchema(prunedData);
@@ -66,6 +66,7 @@ export const JinjatForm: React.FC<JinjatJsonFormsInitStateProps<any>> = (props) 
         [props.uischema, props.data, schema, props.layout]
     );
 
+    console.log(uischemaToUse)
     // @ts-ignore check if it's `Layout`
     if (uischemaToUse?.elements?.length == 0) {
         return <>

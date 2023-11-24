@@ -14,7 +14,7 @@ from starlette.responses import Response
 from jinjat.core.dbt.dbt_project import DbtProjectContainer, DbtProject
 from jinjat.core.exceptions import ExecuteSqlFailure
 from jinjat.core.models import JinjatExecutionResult, DbtAdapterExecutionResult, generate_dbt_context_from_request, \
-    DbtQueryRequestContext, JSON_COLUMNS_QUERY_PARAM
+    DbtQueryRequestContext
 from jinjat.core.util.api import JinjatErrorContainer, JinjatError, JinjatErrorCode, DBT_PROJECT_HEADER, \
     DBT_PROJECT_NAME, JSONAPIException
 from jinjat.core.util.jmespath import extract_jmespath
@@ -92,9 +92,9 @@ async def execute_sql(
                 error=execution_err.to_model()
             )]
         )
-    json_cols = json.loads(request.query_params.get(JSON_COLUMNS_QUERY_PARAM) or '[]')
 
-    return JinjatExecutionResult.from_dbt(body.request, dbt_result, json_columns=json_cols)
+    # TODO: fix openapi_dict
+    return JinjatExecutionResult.from_dbt(body.request, dbt_result, openapi_dict={})
 
 
 async def _execute_jinjat_query(project: DbtProject, execute_function, query: str, ctx: DbtQueryRequestContext,

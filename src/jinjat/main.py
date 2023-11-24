@@ -138,7 +138,7 @@ def serve(
         port: int,
         vars: str,
         refine: Optional[bool] = False,
-) -> object:
+):
     logger().info(f":water_wave: Executing jinjat for dbt project in {project_dir}")
 
     dbt_target = DbtTarget(project_dir=project_dir, profiles_dir=profiles_dir, target=target,

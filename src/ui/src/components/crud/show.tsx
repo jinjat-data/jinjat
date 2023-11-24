@@ -7,12 +7,14 @@ import {JsonSchema} from "@jsonforms/core";
 import {JinjatListProps} from "@components/crud/utils";
 import JinjatAnalysisForm from "../../jsonforms/JinjatAnalysisForm";
 import {Skeleton} from "@mui/material";
+import {QueryErrorComponent} from "@components/common/queryError";
 
 
 export const JinjatShow: React.FC<JinjatListProps> = ({packageName, version, resources, params}) => {
     let analysis = resources.show;
+    let analysisReference = `${packageName}.${analysis}`;
     const {data: jinjatSchema, isLoading: isSchemaLoading, error: schemaError} = useSchema<JsonSchema, HttpError>({
-        analysis: `${packageName}.${analysis}`,
+        analysis: analysisReference,
         config: {type: Type.RESPONSE}
     })
 
@@ -29,12 +31,12 @@ export const JinjatShow: React.FC<JinjatListProps> = ({packageName, version, res
 
 
     if (dataError != null) {
-        return <div> Something went wrong {JSON.stringify(dataError)}! </div>;
+        return <QueryErrorComponent message={`Unable fetching ${analysisReference}`} errors={dataError.response.data.errors}/>
     }
 
     return (
         <Show isLoading={isDataLoading}>
-            {/*<JinjatAnalysisForm parameters={jinjatSchema.parameters} action={"show"}/>*/}
+            <JinjatAnalysisForm parameters={jinjatSchema.parameters || []} action={"show"}/>
             <JinjatForm data={data?.data} schema={jinjatSchema.schema} readonly/>
         </Show>
     );

@@ -42,7 +42,9 @@ export const authProvider: AuthBindings = {
         };
     },
     logout: async () => {
-        nookies.destroy(null, "auth");
+        let destroy = nookies.destroy(null, "auth", {
+            path: '/'
+        });
         return {
             success: true,
             redirectTo: "/login",

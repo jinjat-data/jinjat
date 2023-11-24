@@ -1,6 +1,6 @@
-import {AuthPage} from "@refinedev/mui";
-
 import {nonAuthCheck} from "src/authProvider";
+import {AuthPage} from "@components/pages/auth";
+import {AuthLayout} from "@components/pages/auth/layout";
 
 export default function Login() {
     let nonAuth = nonAuthCheck();
@@ -9,12 +9,14 @@ export default function Login() {
     }
 
     return (
-        <AuthPage
-            type="login"
-            formProps={{
-                defaultValues: {email: "demo@refine.dev", password: "demodemo"},
-            }}
-        />
+        <AuthLayout>
+            <AuthPage
+                type="login"
+                formProps={{
+                    defaultValues: {email: "demo@refine.dev", password: "demodemo"},
+                }}
+            />
+        </AuthLayout>
     );
 }
 

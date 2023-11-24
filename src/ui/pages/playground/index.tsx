@@ -1,8 +1,8 @@
 import React from "react";
-import {Grid, Button} from "@mui/material";
+import {Grid} from "@mui/material";
 import {FileExplorer} from "@components/pages/playground/file-explorer";
 import {EditorTabs} from "@components/pages/playground/editor-tabs";
-import {EditorCode} from "@components/pages/playground/editor-code";
+import {EditorCode} from "@components/code/editor-code";
 import { LoadingButton } from "@mui/lab";
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 

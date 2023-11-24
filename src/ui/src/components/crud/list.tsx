@@ -1,14 +1,19 @@
-import React from "react";
-import {List, useDataGrid, EditButton, ShowButton, DeleteButton} from "@refinedev/mui";
-import {DataGrid, GridToolbar, GridValueFormatterParams, GridNativeColTypes, GridColDef} from "@mui/x-data-grid";
-import {HttpError, Option} from "@refinedev/core";
+import React, {useEffect, useState} from "react";
+import {List, useDataGrid} from "@refinedev/mui";
+import {DataGrid, GridColDef, GridToolbar, useGridApiRef} from "@mui/x-data-grid";
+import {HttpError} from "@refinedev/core";
 import {Type, useSchema} from "@components/hooks/useSchema";
 import {Generate, JsonSchema} from "@jsonforms/core";
 import {JinjatListProps} from "@components/crud/utils";
 import {fmt} from "@components/chart/formatting";
 import {JinjatJsonSchema} from "@components/hooks/schema";
-import {Skeleton} from "@mui/material";
+import {Alert, AlertTitle, Box, Card, LinearProgress, Skeleton, Typography} from "@mui/material";
 import {actionsColumn, getDataGridType} from "../../utils/grid";
+import _ from "lodash";
+import {EditorCode} from "@components/code/editor-code";
+import {border} from "@mui/system";
+import {AlertOctagon} from "lucide-react";
+import {QueryErrorComponent} from "@components/common/queryError";
 
 export const JinjatList: React.FC<JinjatListProps> = ({
                                                           packageName,
@@ -24,15 +29,22 @@ export const JinjatList: React.FC<JinjatListProps> = ({
         return <div>Unable to fetch schema</div>;
     }
 
-    const {dataGridProps} = useDataGrid({
+    const [errors, setErrors] = useState([]);
+    const analysisReference = `${packageName}.${analysis}`;
+    const {dataGridProps, search} = useDataGrid({
         syncWithLocation: true,
-        resource: `_analysis/${packageName}.${analysis}`,
-        meta: {
-            _json_columns: ['columns']
-        },
+        resource: `_analysis/${analysisReference}`,
         pagination: {
             mode: 'server'
-        }
+        },
+        errorNotification: (data) => {
+            setErrors(data.response.data.errors)
+            return {
+                message: data?.message,
+                description: "Error",
+                type: "error",
+            };
+        },
     });
 
     const {data: jinjatSchema, isLoading: isSchemaLoading, isError: isSchemaError} = useSchema<JsonSchema, HttpError>({
@@ -59,40 +71,38 @@ export const JinjatList: React.FC<JinjatListProps> = ({
         }
 
         let objectKeys = Object.keys(properties);
-        const pkColumn  = objectKeys.find(key => properties[key]['x-pk'] === true)
-        if(pkColumn != null) {
+        const pkColumn = objectKeys.find(key => properties[key]['x-pk'] === true)
+        if (pkColumn != null) {
             return pkColumn
         }
 
         return objectKeys.find(prop => prop.toLowerCase() == 'id')
-    }, [jinjatSchema])
+    }, [jinjatSchema]);
 
     const allColumns = React.useMemo(() => {
         if (properties == null) {
             return null
         }
-        const fieldColumns = Object.entries(properties).map(([key, value]) => (
+        const fieldColumns = Object.entries(properties).map(([key, column]) => (
                 {
                     field: key,
-                    headerName: value.label || key,
-                    type: getDataGridType(value.type),
-                    filterable: value.filterable,
-                    description: value.description,
-                    resizable: value.resizable,
-                    sortable: value.sortable,
+                    headerName: column.label || key,
+                    type: getDataGridType(column.type),
+                    filterable: column.filterable,
+                    description: column.description,
+                    resizable: column.resizable,
+                    sortable: column.sortable,
                     headerAlign: rowIdColumn == key ? "left" : undefined,
                     align: rowIdColumn == key ? "left" : undefined,
-                    valueFormatter: (params: GridValueFormatterParams<Option>) => {
-                        return fmt(params.value, 'auto');
-                    },
-                    flex: 1,
                     renderCell: function render({row}) {
                         if (isSchemaLoading) {
                             return "Loading...";
                         }
 
-                        return row[key]
+                        const format = column['x-jinjat-format'];
+                        return fmt(row[key], format);
                     },
+                    flex: 1,
                 } as GridColDef
             )
         )
@@ -103,6 +113,18 @@ export const JinjatList: React.FC<JinjatListProps> = ({
         ] : fieldColumns
     }, [enableActions, properties, rowIdColumn])
 
+    let datagrid = React.useMemo(() => {
+        return _.cloneDeep(props.datagrid || {})
+    }, [props.datagrid])
+
+    const apiRef = useGridApiRef();
+
+    React.useEffect(() => {
+        //
+        if (allColumns != null && apiRef?.current?.restoreState != null && props.datagrid?.initialState != null) {
+            apiRef?.current?.restoreState(props.datagrid?.initialState)
+        }
+    }, [allColumns]);
 
     if (isSchemaLoading || dataGridProps?.loading) {
         return <Skeleton height={30}/>;
@@ -116,11 +138,16 @@ export const JinjatList: React.FC<JinjatListProps> = ({
         return <div>No data or schema found</div>;
     }
 
+    if (errors.length > 0) {
+        return <QueryErrorComponent message={`Unable fetching ${analysisReference}`} errors={errors}/>
+    }
+
     return (
         <List title={title}>
             <DataGrid {...dataGridProps}
+
+                      apiRef={apiRef}
                       columns={allColumns}
-                      sx={{overflowX: 'scroll'}}
                       autoHeight
                       getRowId={(row) => {
                           let rowElement = row[rowIdColumn];
@@ -129,8 +156,8 @@ export const JinjatList: React.FC<JinjatListProps> = ({
                           }
                           return rowElement;
                       }}
-                      slots={{toolbar: GridToolbar}}
-                      {...props.datagrid}
+                      slots={{toolbar: GridToolbar, loadingOverlay: LinearProgress}}
+                      {...datagrid}
             />
         </List>
     );

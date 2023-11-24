@@ -1,5 +1,11 @@
 import ssf from 'ssf';
-import {applyColumnUnits, AUTO_FORMAT_CODE, BUILT_IN_FORMATS} from "@components/chart/builtInFormats";
+import {
+    applyColumnUnits,
+    AUTO_FORMAT_CODE,
+    BUILT_IN_FORMATS,
+    getAutoColumnUnit
+} from "@components/chart/builtInFormats";
+import {formatDistanceToNow} from "date-fns";
 
 const VALUE_FORMATTING_CONTEXT = 'value';
 const AXIS_FORMATTING_CONTEXT = 'axis';
@@ -61,6 +67,7 @@ export function getFormatObjectFromString(formatString, valueType = undefined) {
         return newFormat;
     }
 }
+
 export function standardizeDateString(date) {
     if (date && typeof date === 'string') {
         // Parses an individual string into a JS date object
@@ -100,6 +107,7 @@ export function standardizeDateString(date) {
  */
 export const autoFormat = (typedValue, columnFormat, columnUnitSummary = undefined) => {
     if (columnFormat._autoFormat?.autoFormatFunction) {
+        debugger
         return columnFormat._autoFormat.autoFormatFunction(typedValue, columnFormat, columnUnitSummary);
     } else if (columnFormat._autoFormat.autoFormatCode) {
         let autoFormatCode = columnFormat?._autoFormat?.autoFormatCode;
@@ -116,8 +124,10 @@ export const autoFormat = (typedValue, columnFormat, columnUnitSummary = undefin
                 unit = getAutoColumnUnit(columnUnitSummary.median);
                 unitValue = applyColumnUnits(typedValue, unit);
             }
+            debugger
             return ssf.format(autoFormatCode, unitValue) + unit;
         } else {
+            debugger
             return ssf.format(autoFormatCode, typedValue);
         }
     } else {
@@ -138,14 +148,9 @@ export const fallbackFormat = (typedValue) => {
     }
 };
 export const isAutoFormat = (format, effectiveCode) => {
-    let matchesCode = (effectiveCode || format.formatCode)?.toLowerCase() === AUTO_FORMAT_CODE;
-    let autoFormatCode = format._autoFormat?.autoFormatFunction || format._autoFormat?.autoFormatCode;
-    if (matchesCode && autoFormatCode !== undefined) {
-        return true;
-    } else {
-        return false;
-    }
+    return (effectiveCode || format.formatCode)?.toLowerCase() === AUTO_FORMAT_CODE;
 };
+
 function getEffectiveFormattingCode(columnFormat, formattingContext = VALUE_FORMATTING_CONTEXT) {
     if (typeof columnFormat === 'string') {
         // This should only be used by end users, not by components.
@@ -157,6 +162,7 @@ function getEffectiveFormattingCode(columnFormat, formattingContext = VALUE_FORM
         return columnFormat?.formatCode;
     }
 }
+
 function applyFormatting(
     value,
     columnFormat = undefined,
@@ -164,7 +170,7 @@ function applyFormatting(
     formattingContext = VALUE_FORMATTING_CONTEXT
 ) {
     if (value === undefined || value === null) {
-        return '-';
+        return null;
     }
 
     let result = undefined;
@@ -218,10 +224,59 @@ export const formatValue = (value, columnFormat = undefined, columnUnitSummary =
     }
 };
 
+function humanFileSize(bytes, si = false, dp = 1) {
+    if (bytes == null) {
+        return null
+    }
+    const thresh = si ? 1000 : 1024;
+
+    if (Math.abs(bytes) < thresh) {
+        return bytes + ' B';
+    }
+
+    const units = si
+        ? ['kB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+        : ['KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB', 'ZiB', 'YiB'];
+    let u = -1;
+    const r = 10 ** dp;
+
+    do {
+        bytes /= thresh;
+        ++u;
+    } while (Math.round(Math.abs(bytes) * r) / r >= thresh && u < units.length - 1);
+
+
+    return bytes.toFixed(dp) + ' ' + units[u];
+}
+
+function relative(value) {
+    return formatDistanceToNow(new Date(standardizeDateString(value)), { addSuffix: true })
+}
+
+const customMappings = {
+    "bytes": humanFileSize,
+    "relative": relative,
+}
 
 export function fmt(value, format) {
-    let formatObj = getFormatObjectFromString(format);
+    let customMapping = customMappings[format];
+    if(customMapping != null) {
+        return customMapping(value)
+    }
+
     const valueType = inferValueType(value);
+    if(valueType === 'number' && format == null) {
+        format = 'auto'
+    }
+
+    if(format == null) {
+        return value
+    }
+
+    let formatObj = getFormatObjectFromString(format);
+
+
     formatObj.valueType = valueType;
     return formatValue(value, formatObj);
 }
+

@@ -1,6 +1,5 @@
 import {authCheck} from "../../src/authProvider";
 import {useRouter} from "next/router";
-import {useJinjatProvider} from "@components/hooks/useSchemaProvider";
 import {JinjatList} from "@components/crud/list";
 import React from "react";
 import CodeBracketSquareIcon from '@heroicons/react/24/solid/CodeBracketSquareIcon';
@@ -10,7 +9,6 @@ export default function ModelPage() {
     const router = useRouter()
     const {analysis} = router.query
     let [package_name, version, model_name, id] = analysis
-    const schemaProvider = useJinjatProvider();
 
     if (nonAuth) {
         return nonAuth

@@ -11,7 +11,7 @@ export interface JinjatAnalysisFormProps {
     action : string;
 }
 
-const getPathParams = function (pathsList) {
+const getPathParams = function (pathsList: any[]) {
     const paths = {}
     if(!Array.isArray(pathsList)) {
         pathsList = [pathsList]
@@ -19,6 +19,7 @@ const getPathParams = function (pathsList) {
 
     pathsList.forEach(path => {
         let [key, value] = path.split(':', 2)
+        // @ts-ignore
         paths[key] = value
     })
     return paths

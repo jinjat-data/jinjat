@@ -11,7 +11,7 @@ import {
 import {JsonSchema} from "@jsonforms/core/src/models";
 import {Box, FormHelperText, Hidden, InputLabel, Rating} from "@mui/material";
 import {JinjatJsonSchema, OpenAPIParameter} from "@components/hooks/schema";
-import {EditorCode} from "@components/pages/playground/editor-code";
+import {EditorCode} from "@components/code/editor-code";
 import {
     materialCells,
     materialRenderers,

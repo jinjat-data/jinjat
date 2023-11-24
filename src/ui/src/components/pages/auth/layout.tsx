@@ -1,9 +1,8 @@
 import PropTypes from 'prop-types';
 import NextLink from 'next/link';
 import { Box, Typography, Unstable_Grid2 as Grid } from '@mui/material';
-import { Logo } from 'src/components/logo';
 
-export const Layout = (props) => {
+export const AuthLayout = (props : any) => {
   const { children } = props;
 
   return (
@@ -47,7 +46,7 @@ export const Layout = (props) => {
                 width: 32
               }}
             >
-              <Logo />
+              {/*<Logo />*/}
             </Box>
           </Box>
           {children}
@@ -57,7 +56,7 @@ export const Layout = (props) => {
           lg={6}
           sx={{
             alignItems: 'center',
-            background: 'radial-gradient(50% 50% at 50% 50%, #122647 0%, #090E23 100%)',
+            background: 'radial-gradient(50% 50% at 50% 50%, #481269 0%, black 100%)',
             color: 'white',
             display: 'flex',
             justifyContent: 'center',
@@ -75,28 +74,28 @@ export const Layout = (props) => {
                 lineHeight: '32px',
                 mb: 1
               }}
-              variant="h1"
+              variant="h3"
             >
-              Welcome to{' '}
               <Box
                 component="a"
-                sx={{ color: '#15B79E' }}
                 target="_blank"
               >
-                Devias Kit
+                Jinjat
               </Box>
             </Typography>
-            <Typography
-              align="center"
-              sx={{ mb: 3 }}
-              variant="subtitle1"
-            >
-              A professional kit that comes with ready-to-use MUI components.
-            </Typography>
+
             <img
               alt=""
-              src="/assets/auth-illustration.svg"
+              src="/assets/ninja.png"
             />
+              <Typography
+                  align="center"
+                  sx={{ mb: 5 }}
+                  fontSize={16}
+                  variant="subtitle2"
+              >
+                  Low code application framework for analytics engineers
+              </Typography>
           </Box>
         </Grid>
       </Grid>
@@ -104,6 +103,6 @@ export const Layout = (props) => {
   );
 };
 
-Layout.prototypes = {
+AuthLayout.prototypes = {
   children: PropTypes.node
 };

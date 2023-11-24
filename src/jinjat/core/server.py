@@ -103,7 +103,6 @@ def homepage_without_ui(host, project: DbtProject, dbt_target: DbtTarget) -> dic
 
 
 def mount_app(app: FastAPI, project: DbtProject, dbt_target: DbtTarget):
-    logger().info(f"start")
     config = get_jinjat_project_config(project.project_root)
 
     app.add_middleware(
@@ -114,7 +113,6 @@ def mount_app(app: FastAPI, project: DbtProject, dbt_target: DbtTarget):
         allow_headers=["*"],
         expose_headers=[DBT_PROJECT_HEADER, DBT_PROJECT_NAME]
     )
-    logger().info(f"start2")
     register_jsonapi_exception_handlers(app)
     app.openapi = lambda: custom_openapi(project, config)
 

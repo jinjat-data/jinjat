@@ -1,9 +1,7 @@
-import React, {CSSProperties, useState} from "react";
+import React, {useState} from "react";
 import {
     CanAccess,
     ITreeMenu,
-    useIsExistAuthentication,
-    useLogout,
     useTitle,
     useTranslate,
     useRouterContext,
@@ -11,9 +9,7 @@ import {
     useLink,
     useMenu,
     useRefineContext,
-    useActiveAuthProvider,
     pickNotDeprecated,
-    useWarnAboutChange,
 } from "@refinedev/core";
 import {
     useThemedLayoutContext,
@@ -39,13 +35,16 @@ import NextLink from "next/link";
 import {Button, ButtonBase, Divider, NativeSelect, Stack, SvgIcon, Typography} from "@mui/material";
 import ChevronUpDownIcon from "@heroicons/react/24/solid/ChevronUpDownIcon";
 import _ from "lodash";
+import {JinjatProject} from "@components/hooks/useJinjatProject";
+import {useResource} from "@refinedev/core/src/hooks";
 
-export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
-                                                                            Title: TitleFromProps,
-                                                                            render,
-                                                                            meta,
-                                                                            activeItemDisabled = false,
-                                                                        }) => {
+export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps & { project: JinjatProject }> = ({
+                                                                                                         Title: TitleFromProps,
+                                                                                                         render,
+                                                                                                         meta,
+                                                                                                         activeItemDisabled = false,
+                                                                                                         project
+                                                                                                     }) => {
     const {
         siderCollapsed,
         setSiderCollapsed,
@@ -67,8 +66,11 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
     const translate = useTranslate();
 
     const {menuItems, selectedKey, defaultOpenKeys} = useMenu({meta});
-    const TitleFromContext = useTitle();
+    if (project.openapi.refine.sidebar_menu != null) {
+        // debugger
+    }
 
+    const TitleFromContext = useTitle();
 
     const [open, setOpen] = useState<{ [k: string]: any }>({});
 
@@ -93,7 +95,7 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
 
     const renderTreeView = (tree: ITreeMenu[], selectedKey?: string) => {
         return tree.map((item: ITreeMenu) => {
-            const { route, name, children, meta, options} =
+            const {route, name, children, meta, options} =
                 item;
             const isOpen = open[item.key || ""] || false;
 
@@ -186,7 +188,6 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
                 );
             }
 
-            // @ts-ignore
             return (
                 <CanAccess
                     key={item.key}
@@ -222,26 +223,26 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
                                 component={NextLink}
                                 href={route}
                             >
-                                    <Box
-                                        component="span"
-                                        sx={{
-                                            alignItems: 'center',
-                                            color: 'neutral.400',
-                                            display: 'inline-flex',
-                                            justifyContent: 'center',
-                                            mr: 2,
-                                            ...(isSelected && {
-                                                color: 'primary.main'
-                                            })
-                                        }}
+                                <Box
+                                    component="span"
+                                    sx={{
+                                        alignItems: 'center',
+                                        color: 'neutral.400',
+                                        display: 'inline-flex',
+                                        justifyContent: 'center',
+                                        mr: 2,
+                                        ...(isSelected && {
+                                            color: 'primary.main'
+                                        })
+                                    }}
+                                >
+                                    <SvgIcon
+                                        fontSize="small"
+                                        sx={{color: 'neutral.500'}}
                                     >
-                                        <SvgIcon
-                                            fontSize="small"
-                                            sx={{color: 'neutral.500'}}
-                                        >
-                                        {meta?.icon != null ?  meta?.icon : defaultIcon}
-                                        </SvgIcon>
-                                    </Box>
+                                        {meta?.icon != null ? meta?.icon : defaultIcon}
+                                    </SvgIcon>
+                                </Box>
                                 <Box
                                     component="span"
                                     sx={{
@@ -312,7 +313,6 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
             </Tooltip>
         </CanAccess>
     ) : null;
-
 
 
     const items = renderTreeView(menuItems, selectedKey);
@@ -486,18 +486,18 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
                                         {defaultText}
                                     </Typography>
 
-                                        <NativeSelect
-                                            sx={{
-                                                color: 'white'
-                                            }}
-                                            defaultValue={30}
-                                            inputProps={{
-                                                name: 'environment',
-                                                id: 'uncontrolled-native',
-                                            }}
-                                        >
-                                            <option value={"dev"}>Development</option>
-                                        </NativeSelect>
+                                    <NativeSelect
+                                        sx={{
+                                            color: 'white'
+                                        }}
+                                        defaultValue={30}
+                                        inputProps={{
+                                            name: 'environment',
+                                            id: 'uncontrolled-native',
+                                        }}
+                                    >
+                                        <option value={"dev"}>Development</option>
+                                    </NativeSelect>
                                 </div>
                                 <SvgIcon
                                     fontSize="small"

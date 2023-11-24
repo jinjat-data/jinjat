@@ -1,4 +1,4 @@
-import React, {useState} from "react";
+import React, {useEffect, useState} from "react";
 import {HttpError, IResourceComponentsProps, useForm, useResource, useShow} from "@refinedev/core";
 import { Edit } from "@refinedev/mui";
 import {JinjatForm} from "src/jsonforms/JinjatForm";
@@ -8,17 +8,25 @@ import {ErrorObject} from "ajv";
 import {JinjatFormProps} from "@components/crud/utils";
 import JinjatAnalysisForm from "../../jsonforms/JinjatAnalysisForm";
 
-export const JinjatEdit: React.FC<JinjatFormProps> = ({packageName, version, resources, params}) => {
-    const {queryResult} = useShow({resource: `_analysis/${packageName}.${resources.show}`, id: params});
-    console.log(queryResult)
+export const JinjatEdit: React.FC<JinjatFormProps> = ({packageName, version, title, resources, params}) => {
+    let showResource = `_analysis/${packageName}.${resources.show}`;
+    const {queryResult, formLoading, onFinish} = useForm({resource: showResource, id: params});
+
     const [errors, setErrors] = useState<ErrorObject[] | null>(null)
-    const { formLoading, onFinish } = useForm();
 
     let resource = `${packageName}.${resources.edit}`;
     const {data: jinjatSchema, isLoading : isLoadingSchema, isError} = useSchema<JsonSchema, HttpError>({
         analysis: resource,
         config: {type: Type.REQUEST},
     })
+
+    useEffect(() => {
+        let pkColumn = jinjatSchema?.schema['x-pk'];
+        if(pkColumn != null && jinjatSchema?.schema.properties != null) {
+            // @ts-ignore
+            jinjatSchema.schema.properties[pkColumn].readOnly = true
+        }
+    }, [])
 
     if (isLoadingSchema) {
         return <div>Loading schema...</div>;
@@ -28,13 +36,6 @@ export const JinjatEdit: React.FC<JinjatFormProps> = ({packageName, version, res
         return <div>Something went wrong!</div>;
     }
 
-    // // @ts-ignore
-    // let pkColumn = jinjatSchema.schema['x-pk'];
-    // if(pkColumn != null && jinjatSchema?.schema.properties != null) {
-    //     // @ts-ignore
-    //    jinjatSchema.schema.properties[pkColumn].readOnly = true
-    // }
-
     const {data, isLoading} = queryResult;
 
     if (data == null) {
@@ -42,8 +43,8 @@ export const JinjatEdit: React.FC<JinjatFormProps> = ({packageName, version, res
     }
 
     return (
-        <Edit isLoading={isLoading || formLoading} saveButtonProps={{disabled: errors != null && errors.length > 0, onClick: () => onFinish(data)}}>
-            <JinjatAnalysisForm parameters={jinjatSchema.parameters} action={"edit"}/>
+        <Edit title={title} resource={showResource} recordItemId={params} isLoading={isLoading} saveButtonProps={{disabled: errors != null && errors.length > 0, onClick: () => onFinish(data)}}>
+            {jinjatSchema.parameters?.length > 0 ? <JinjatAnalysisForm parameters={jinjatSchema.parameters} action={"edit"}/> : <div/>}
             <JinjatForm data={data.data} schema={jinjatSchema.schema} onError={setErrors}/>
         </Edit>
     );

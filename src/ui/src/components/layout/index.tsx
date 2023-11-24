@@ -4,8 +4,9 @@ import { ThemedHeaderV2 as DefaultHeader } from "./header";
 import { ThemedSiderV2 as DefaultSider } from "./sider";
 import Box from "@mui/material/Box";
 import type { RefineThemedLayoutV2Props } from "@refinedev/mui";
+import {JinjatProject} from "@components/hooks/useJinjatProject";
 
-export const ThemedLayoutV2: React.FC<RefineThemedLayoutV2Props> = ({
+export const ThemedLayoutV2: React.FC<RefineThemedLayoutV2Props & {project: JinjatProject}> = ({
   Sider,
   Header,
   Title,
@@ -13,6 +14,7 @@ export const ThemedLayoutV2: React.FC<RefineThemedLayoutV2Props> = ({
   OffLayoutArea,
   children,
   initialSiderCollapsed,
+  project,
 }) => {
   const SiderToRender = Sider ?? DefaultSider;
   const HeaderToRender = Header ?? DefaultHeader;
@@ -20,7 +22,7 @@ export const ThemedLayoutV2: React.FC<RefineThemedLayoutV2Props> = ({
   return (
     <ThemedLayoutContextProvider initialSiderCollapsed={initialSiderCollapsed}>
       <Box display="flex" flexDirection="row">
-        <SiderToRender Title={Title} />
+        <SiderToRender Title={Title} project={project} />
         <Box
           sx={[
             {

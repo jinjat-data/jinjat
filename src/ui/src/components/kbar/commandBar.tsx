@@ -5,6 +5,8 @@ import {useQuery} from "@tanstack/react-query";
 import {useJinjatProvider} from "@components/hooks/useSchemaProvider";
 import {createActionsFromNodes} from "@components/kbar/index";
 import {useJinjatProject} from "@components/hooks/useJinjatProject";
+import {useRouter} from "next/router";
+import {IJinjatContextProvider} from "@components/hooks/schema";
 
 
 const searchStyle = {
@@ -35,25 +37,28 @@ const positionerStyle = {
     background: "rgba(0, 0, 0, 0.1)",
     zIndex: "9999",
 };
-export const CommandBar: React.FC = () => {
-    const jinjatContext = useJinjatProvider();
+export const CommandBar: React.FC<{jinjatContext: IJinjatContextProvider}> = ({jinjatContext}) => {
     const {
         data: project,
         isLoading: isProjectLoading,
         error,
     } = useJinjatProject({schemaContext: jinjatContext});
+    const router = useRouter();
 
     const {data: nodes, isLoading: isNodesLoading} = useQuery({
         queryKey: ["dbt-nodes"],
-        queryFn: () => jinjatContext.getAllDbtNodes()
+        queryFn: () => jinjatContext.getAllDbtNodes(),
+        initialData: [],
     })
 
-    //TODO: fix
-    useRegisterActions(createActionsFromNodes(project, nodes!!), [project, nodes])
+    let actions = createActionsFromNodes(project?.manifest, nodes!!, router);
+    console.log(actions)
+    useRegisterActions(actions, [nodes])
 
     if (isProjectLoading || isNodesLoading) {
         return <div/>
     }
+
 
     return (
         <KBarPortal>

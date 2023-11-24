@@ -42,7 +42,6 @@ export const dataProvider = (
       query._order = _order.join(",");
     }
 
-    debugger
     const { data, headers } = await httpClient[requestMethod](
       `${url}?${stringify(query)}&${stringify(queryFilters)}`,
       {
@@ -104,7 +103,6 @@ export const dataProvider = (
 
   getOne: async ({ resource, id, meta }) => {
     const url = `${apiUrl}/${resource}/${id}`;
-
     const { headers, method } = meta ?? {};
     const requestMethod = (method as MethodTypes) ?? "get";
 
@@ -144,7 +142,6 @@ export const dataProvider = (
     query,
     headers,
   }) => {
-    debugger
     let requestUrl = `${apiUrl}${url}?`;
 
     if (sorters) {

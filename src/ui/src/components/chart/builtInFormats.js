@@ -70,7 +70,7 @@ export function computeNumberAutoFormatCode(
  * @param {number | undefined} value
  * @returns {string} the appropriate unit (B, M, k or '') for the given value
  */
-function getAutoColumnUnit(value) {
+export function getAutoColumnUnit(value) {
     let absoluteValue = Math.abs(value);
     if (absoluteValue >= 5000000000000) {
         return 'T';
@@ -370,6 +370,13 @@ export const BUILT_IN_FORMATS = [
     {
         formatTag: 'fulldate',
         formatCode: 'dddd mmmm d, yyyy',
+        formatCategory: 'date',
+        valueType: 'date',
+        exampleInput: '2022-01-09 12:45'
+    },
+    {
+        formatTag: 'isodate',
+        formatCode: 'dddd mmmm d, yyyy HH:MM',
         formatCategory: 'date',
         valueType: 'date',
         exampleInput: '2022-01-09 12:45'

@@ -11,6 +11,12 @@ import {
     KBarProvider
 } from "kbar";
 
+import "@copilotkit/react-textarea/styles.css";
+import "@copilotkit/react-ui/styles.css";
+
+import { CopilotTextarea } from "@copilotkit/react-textarea";
+import {CopilotProvider, useMakeCopilotReadable} from "@copilotkit/react-core";
+
 import {ColorModeContextProvider} from "@contexts";
 import {
     Alert,
@@ -27,7 +33,7 @@ import React, {useState} from "react";
 import {createResources} from "src/refine/createResources";
 import {useJinjatProject} from "@components/hooks/useJinjatProject";
 import {jinjatProvider} from "@components/hooks/schema";
-import {JinjatServiceContextProvider, useJinjatProvider} from "@components/hooks/useSchemaProvider";
+import {JinjatServiceContextProvider} from "@components/hooks/useSchemaProvider";
 import {getMessageForStatusCode} from "../src/utils/messages";
 import {CacheProvider} from "@emotion/react";
 import {useNProgress} from "@components/hooks/use-nprogress";
@@ -36,11 +42,15 @@ import {AdapterDateFns} from "@mui/x-date-pickers/AdapterDateFns";
 import {ThemedLayoutV2} from "@components/layout";
 import createCache from "@emotion/cache";
 import {dataProvider} from "src/analysis-data-provider";
-import {createActionsFromProject, CommandBar, createActionsFromNodes} from "@components/kbar";
+import {createActionsFromProject, CommandBar} from "@components/kbar";
+import {CopilotSidebarUIProvider} from "@copilotkit/react-ui";
+import {useRouter} from "next/router";
 
 const clientSideEmotionCache = createCache({key: 'css'});
 
 const queryClient = new QueryClient();
+
+// useMakeCopilotReadable()
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
     noLayout?: boolean;
@@ -51,9 +61,10 @@ type AppPropsWithLayout = AppProps & {
 };
 
 function JinjatApp({Component, pageProps}: AppPropsWithLayout): JSX.Element {
+    useNProgress();
     let apiUrl = process.env.NEXT_PUBLIC_JINJAT_URL;
     const jinjatContext = jinjatProvider(apiUrl);
-    useNProgress();
+    const router = useRouter();
 
     const {
         data: project,
@@ -96,28 +107,29 @@ function JinjatApp({Component, pageProps}: AppPropsWithLayout): JSX.Element {
         );
     }
 
-    let resources = createResources(project!!);
+    let resources = createResources(project?.manifest!!);
     const renderComponent = () => {
         if (Component.noLayout) {
             // @ts-ignore
-            return <Component {...pageProps} project={project}/>;
+            return <Component {...pageProps} project={project?.manifest}/>;
         }
 
         return (
-            <ThemedLayoutV2>
-                <Component {...pageProps} project={project}/>
+            <ThemedLayoutV2 project={project!!}>
+                <Component {...pageProps} project={project?.manifest}/>
             </ThemedLayoutV2>
         );
     };
 
-    const resourceActions = createActionsFromProject(project!!)
+    const resourceActions = createActionsFromProject(project?.manifest!!, router)
 
     return <>
         <CacheProvider value={clientSideEmotionCache}>
+            <CopilotProvider chatApiEndpoint="/api/copilot">
             <LocalizationProvider dateAdapter={AdapterDateFns}>
                 <QueryClientProvider client={queryClient}>
                     <KBarProvider actions={resourceActions}>
-                        <CommandBar/>
+                        <CommandBar jinjatContext={jinjatContext}/>
                         <ColorModeContextProvider>
                             <CssBaseline/>
                             <GlobalStyles styles={{html: {WebkitFontSmoothing: "auto"}}}/>
@@ -147,8 +159,12 @@ function JinjatApp({Component, pageProps}: AppPropsWithLayout): JSX.Element {
                             </RefineSnackbarProvider>
                         </ColorModeContextProvider>
                     </KBarProvider>
+                    <CopilotSidebarUIProvider >
+                        test
+                    </CopilotSidebarUIProvider>
                 </QueryClientProvider>
             </LocalizationProvider>
+            </CopilotProvider>
         </CacheProvider>
     </>;
 }

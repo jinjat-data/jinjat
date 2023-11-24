@@ -1,5 +1,5 @@
 const nextConfig = {
-  output: 'export',
+  // output: 'export',
   distDir: 'dist',
   pageExtensions: ['js', 'jsx', 'ts', 'tsx'],
   webpack: (config) => {

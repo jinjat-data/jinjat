@@ -20,7 +20,7 @@ interface RefineAction {
     [key: string]: any;
 }
 
-export type RefineConfig = {
+export type ExposureRefineConfig = {
     menu_icon?: string,
     actions?: RefineAction,
     resources?: RefineResource<string>,
@@ -29,7 +29,7 @@ export type RefineConfig = {
 }
 
 export interface ExposureJinjatConfig {
-    refine: RefineConfig,
+    refine: ExposureRefineConfig,
     analysis? : string
 }
 
@@ -61,7 +61,22 @@ export interface JinjatResource {
     owner?: Owner
 }
 
-export interface JinjatProject {
+export interface SidebarMenu {
+    link: string,
+    children: SidebarMenu[],
+    label: string,
+}
+
+export interface ProjectRefineConfig {
+    sidebar_menu: SidebarMenu[]
+}
+export interface JinjatOpenAPI {
+    jsonforms? : { renderers: Map<string, string> }
+    refine: ProjectRefineConfig
+    importmaps? : string[]
+}
+
+export interface JinjatManifest {
     resources: JinjatResource[],
     package_name: string
     version: string
@@ -126,7 +141,10 @@ export interface IJinjatContextProvider {
         analysis: string;
     }) => Promise<JinjatSchema>;
 
-    getProject: () => Promise<JinjatProject>
+    getManifest: () => Promise<JinjatManifest>
+    getProject: (params: {
+                     packageName: string,
+                 }) => Promise<JinjatOpenAPI>
 
     getApiUrl: () => string
 
@@ -144,6 +162,7 @@ export interface IJinjatContextProvider {
 const REQUEST_QUERY = (packageName: string, analysis: string) => `paths.*.*[] | [?ends_with(operationId, \`${analysis}\`)] | [0] .projection(\`parameters, schema\`, parameters, requestBody.content."application/json".schema)`
 const RESPONSE_QUERY = (packageName: string, analysis: string) => `paths.*.*[] | [?ends_with(operationId, \`${analysis}\`)] | [0] .projection(\`parameters, schema\`, parameters, responses."200".content."application/json".schema)`
 const EXPOSURES_QUERY = 'exposures.* | [?not_null(meta.jinjat)].{name: name, type: type, unique_id: unique_id, description: description, package_name: package_name, jinjat: meta.jinjat, owner: owner, label: label}'
+const OPENAPI_PROJECT_QUERY = '{refine: "x-jinjat".refine, security: security, securitySchemes: components.securitySchemes}'
 const MAIN_README_QUERY = 'docs."doc.{{project_name}}.__overview__".projection(\'file_path, content\', original_file_path, block_contents)'
 const ALL_DBT_NODES = 'nodes.* | [?resource_type==\'model\' || resource_type==\'source\' || resource_type==\'seed\' || resource_type==\'analysis\'].{package_name: package_name, name: name, resource_type: resource_type, unique_id: unique_id}'
 
@@ -156,7 +175,7 @@ export const jinjatProvider = (
     httpClient: AxiosInstance = axiosInstance,
 ): IJinjatContextProvider => <IJinjatContextProvider>({
 
-    getProject(): Promise<JinjatProject> {
+    getManifest(): Promise<JinjatManifest> {
         let queryParams = stringify({jmespath: EXPOSURES_QUERY})
         return httpClient.get(
             `${apiUrl}/admin/manifest.json?${queryParams}`,
@@ -166,6 +185,15 @@ export const jinjatProvider = (
                 package_name: result.headers['x-dbt-project-name'],
                 version: result.headers['x-dbt-project-version']
             }
+        });
+    },
+
+    getProject({packageName}): Promise<JinjatOpenAPI> {
+        let queryParams = stringify({jmespath: OPENAPI_PROJECT_QUERY})
+        return httpClient.get(
+            `${apiUrl}/${packageName}/openapi.json?${queryParams}`,
+        ).then(result => {
+            return result.data
         });
     },
 
@@ -215,10 +243,11 @@ export const jinjatProvider = (
     },
 
     getAllDbtNodes(): Promise<DbtNode> {
-        debugger
         let queryParams = stringify({jmespath: ALL_DBT_NODES});
         return httpClient.get(
             `${apiUrl}/admin/manifest.json?${queryParams}`,
-        ).then(result => result.data);
+        ).then(result => {
+            return result.data
+        });
     }
 })

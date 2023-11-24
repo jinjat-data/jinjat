@@ -7,7 +7,7 @@ import {
 } from "@refinedev/core";
 import { MetaQuery } from "@refinedev/core";
 import {useEffect, useState} from "react";
-import {IJinjatContextProvider, JinjatProject} from "@components/hooks/schema";
+import {IJinjatContextProvider, JinjatManifest, JinjatOpenAPI} from "@components/hooks/schema";
 
 
 export type UseProjectSchemaProps = {
@@ -22,6 +22,10 @@ export interface JinjatProjectResponse {
     isLoading?: boolean
 }
 
+export interface JinjatProject {
+    manifest : JinjatManifest,
+    openapi: JinjatOpenAPI
+}
 
 export const useJinjatProject = ({
                              schemaContext,
@@ -38,14 +42,18 @@ export const useJinjatProject = ({
     const [isLoading, setLoading] = useState(true);
 
     useEffect(() => {
-        schemaContext.getProject()
-            .then(data => {
-                setData(data);
+        let promise = Promise.all([
+            schemaContext.getManifest(),
+            schemaContext.getProject({packageName: "snowflake_admin"})
+            ])
+        promise
+            .then(([manifest, openapi]) => {
+                setData({manifest, openapi});
 
                 const notificationConfig =
                     typeof successNotification === "function"
                         ? successNotification(
-                            data,
+                            manifest,
                             {meta: meta},
                         )
                         : successNotification;

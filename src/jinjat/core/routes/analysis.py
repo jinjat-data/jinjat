@@ -2,6 +2,7 @@ import functools
 import itertools
 import json
 import re
+import sys
 from copy import deepcopy
 from pathlib import Path
 from typing import List, Optional, Callable
@@ -23,8 +24,9 @@ from starlette.responses import JSONResponse, Response
 
 from jinjat.core.dbt.dbt_project import DbtProject
 from jinjat.core.exceptions import InvalidJinjaConfig, ExecuteSqlFailure
+from jinjat.core.log_controller import logger
 from jinjat.core.models import generate_dbt_context_from_request, JinjatExecutionResult, JinjatAnalysisConfig, \
-    JinjatProjectConfig, JSON_COLUMNS_QUERY_PARAM
+    JinjatProjectConfig
 from jinjat.core.routes.admin import _execute_jinjat_query
 from jinjat.core.schema.data_type import get_json_schema_from_data_type
 from jinjat.core.util.api import get_human_readable_error, rapidoc_html, register_jsonapi_exception_handlers, \
@@ -37,12 +39,10 @@ ANALYSIS_FILE_PATH_REGEX = re.compile(r"^analysis\/(.*)\.sql$")
 
 async def handle_analysis_api(project: DbtProject,
                               sql: str,
-                              operation: Operation,
                               openapi_dict: dict,
                               transform_request: Callable[[dict], dict],
                               transform_response: Callable[[dict], dict],
                               fetch: bool,
-                              jinjat_project: JinjatProjectConfig,
                               request: Request,
                               response: Response):
     context = await generate_dbt_context_from_request(request, openapi_dict, transform_request)
@@ -54,8 +54,9 @@ async def handle_analysis_api(project: DbtProject,
     try:
         query_result = await _execute_jinjat_query(project, project.execute_sql, sql, context,
                                                    limit, fetch, include_total=end is not None)
-        json_cols = json.loads(request.query_params.get(JSON_COLUMNS_QUERY_PARAM) or '[]')
-        jinjat_result = JinjatExecutionResult.from_dbt(context, query_result, transform_response, json_cols)
+        response_schema = openapi_dict.get("responses", {}).get(200, {}).get("content", {}).get("application/json",
+                                                                                                {}).get("schema", {})
+        jinjat_result = JinjatExecutionResult.from_dbt(context, query_result, transform_response, response_schema)
         if query_result.total_rows is not None:
             response.headers['x-total-count'] = str(query_result.total_rows)
     except ExecuteSqlFailure as execution_err:
@@ -76,11 +77,13 @@ async def handle_analysis_api(project: DbtProject,
         return jinjat_result.data
 
 
-def create_components_from_nodes(project: DbtProject, request: Request):
+def create_components_from_nodes(project: DbtProject):
     schema_nodes = filter(
-        lambda node: node.resource_type in ['model', 'seed', 'source', 'analysis'] and (
-                'jinjat' in node.meta or 'jinjat' in node.config),
-        project.dbt.nodes.values())
+        lambda node: node.resource_type in ['model', 'seed', 'source', 'analysis']
+                     # and ('jinjat' in node.meta or 'jinjat' in node.config)
+        ,
+        # https://stackoverflow.com/questions/11941817/how-can-i-avoid-runtimeerror-dictionary-changed-size-during-iteration-error
+        project.dbt.nodes.copy().values())
 
     components = {}
     for node in schema_nodes:
@@ -139,7 +142,14 @@ def get_final_response(transform: Optional[str], request_body_model: Optional[Sc
         return Schema.parse_obj({"type": "array", "items": request_body_model})
 
 
-async def custom_openapi(project, jinjat_project_config, api, package_name, req: Request) -> JSONResponse:
+def generate_schema(project: DbtProject, openapi_schema):
+    component_schemas = create_components_from_nodes(project)
+    components = openapi_schema.setdefault('components', {})
+    existing_schemas = components.setdefault('schemas', {})
+    return {**existing_schemas, **component_schemas}
+
+
+async def custom_openapi(project, jinjat_project_config, api, req: Request) -> JSONResponse:
     extract_path = req.query_params.get("jmespath")
     scheme = req.headers.get('x-forwarded-proto')
     url = str(req.base_url.replace(scheme=scheme or req.url.scheme))
@@ -151,14 +161,11 @@ async def custom_openapi(project, jinjat_project_config, api, package_name, req:
 
     openapi_schema = get_openapi(title=project.project_name,
                                  version=project.config.version,
-                                 routes=api.routes,
-                                 servers=servers)
+                                 routes=api.routes)
 
-    component_schemas = create_components_from_nodes(project, req)
-    components = openapi_schema.setdefault('components', {})
-    existing_schemas = components.setdefault('schemas', {})
-    components['schemas'] = {**existing_schemas, **component_schemas}
+    openapi_schema["components"] = {"schemas": generate_schema(project, openapi_schema)}
     openapi_schema["x-jinjat"] = {"refine": jinjat_project_config.refine}
+    openapi_schema['servers'] = servers
 
     if jinjat_project_config.openapi is not None:
         always_merger.merge(openapi_schema, jinjat_project_config.openapi)
@@ -185,7 +192,10 @@ def enrich_openapi_schema(project: DbtProject, openapi: Operation, config: Jinja
                                                                          ref=f"#/components/schemas/{node.unique_id}")
                                                                                    ))})}
 
-    openapi.parameters = (openapi.parameters or []) + (config.request.parameters or [])
+    params = (openapi.parameters or [])
+    if config.request is not None and config.request.parameters is not None:
+        params = params + config.request.parameters
+    openapi.parameters = params
 
 
 def register_openapi_validators(project: DbtProject):
@@ -240,7 +250,7 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
         # sub_app.add_route("/elements", functools.partial(elements_html, CustomButton("Admin APIs", "/")),
         #               include_in_schema=False)
         sub_app.add_route(f"/{package_name}/openapi.json",
-                          functools.partial(custom_openapi, project, jinjat_project_config, sub_app, package_name),
+                          functools.partial(custom_openapi, project, jinjat_project_config, sub_app),
                           include_in_schema=True)
 
         for node in analyses:
@@ -296,8 +306,20 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
                 raise InvalidJinjaConfig(node.original_file_path, None,
                                          f"Unable to parse `transform_response` jmespath expression {jinjat_config.response.transform}: {e}")
 
-            endpoint = functools.partial(handle_analysis_api, project, node.raw_code, openapi, openapi_dict, transform_request,
-                                         transform_response, fetch_enabled, jinjat_project_config)
+            openapi_dict_resolved = deepcopy(openapi_dict)
+            schemas = generate_schema(project, {})
+            openapi_dict_resolved["components"] = {"schemas": schemas}
+            try:
+                openapi_dict_resolved = jsonref.replace_refs(openapi_dict_resolved, base_uri="", proxies=False,
+                                                             lazy_load=False)
+            except jsonref.JsonRefError as e:
+                logger().error(
+                    f"Error generating route {node.unique_id}\nOpenAPI schema validation failed: ${e.message}")
+                sys.exit(1)
+
+            endpoint = functools.partial(handle_analysis_api, project, node.raw_code, openapi_dict_resolved,
+                                         transform_request,
+                                         transform_response, fetch_enabled)
             analysis_lookup[node.unique_id] = endpoint
             sub_app.add_api_route(f'/{package_name}/{project.config.dependencies[package_name].version}/{api_path}',
                                   endpoint=endpoint,
