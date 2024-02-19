@@ -57,6 +57,7 @@ export const muiComponents = {
     h3: props => <Typography variant={"h3"} {...props} />,
     h4: props => <Typography variant={"h4"} {...props} />,
     h5: props => <Typography variant={"h5"} {...props} />,
+    heading: props => <Typography variant={props.level} {...props} />,
     blockquote: props => <Box
         component='blockquote'
         dir='auto'
@@ -101,9 +102,8 @@ export const muiComponents = {
     Slider,
     Blockquote: Box
 };
-export const jinjatComponents = {Observe};
 
-export const allComponents = {...muiComponents, ...jinjatComponents, ...allChartComponents}
+export const allComponents = {...muiComponents, ...allChartComponents}
 
 const exposureIcons = {
     "create": BarsArrowUpIcon,
@@ -115,7 +115,7 @@ const exposureIcons = {
 }
 
 export const actions = {
-    "create": JinjatCreate,
+    "create": JinjatNotebook,
     "show": JinjatShow,
     "edit": JinjatEdit,
     "list": JinjatList,

@@ -44,7 +44,7 @@ export const useJinjatProject = ({
     useEffect(() => {
         let promise = Promise.all([
             schemaContext.getManifest(),
-            schemaContext.getProject({packageName: "snowflake_admin"})
+            schemaContext.getProject({packageName: null})
             ])
         promise
             .then(([manifest, openapi]) => {

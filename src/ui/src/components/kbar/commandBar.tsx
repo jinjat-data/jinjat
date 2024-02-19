@@ -49,10 +49,10 @@ export const CommandBar: React.FC<{jinjatContext: IJinjatContextProvider}> = ({j
         queryKey: ["dbt-nodes"],
         queryFn: () => jinjatContext.getAllDbtNodes(),
         initialData: [],
+        cacheTime: 15000,
     })
 
     let actions = createActionsFromNodes(project?.manifest, nodes!!, router);
-    console.log(actions)
     useRegisterActions(actions, [nodes])
 
     if (isProjectLoading || isNodesLoading) {

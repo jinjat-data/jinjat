@@ -76,7 +76,7 @@ class ResponseSchema(BaseModel):
 class JinjatAnalysisConfig(BaseModel):
     cors: Optional[bool]
     openapi: Optional[Operation] = Operation()
-    method: Optional[str]
+    method: Optional[typing.Union[str, list[str]]]
     fetch: Optional[bool] = True
 
     request: Optional[RequestSchema] = RequestSchema()

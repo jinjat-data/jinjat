@@ -24,9 +24,9 @@ export default function ExposurePage() {
     let analysis_name = resource?.meta?.jinjat?.analysis || name;
     action = action || resource?.meta?.jinjat?.refine?.layout;
     // TODO: only perform when layout and action is not set
-    const {isLoading, error, data: method} = useQuery({
+    const {isLoading, error, data} = useQuery({
         queryKey: ['analysis.method', package_name, version, analysis_name],
-        queryFn: () => schemaProvider.getAnalysisMethod(package_name, analysis_name),
+        queryFn: () => schemaProvider.getAnalysisApi(package_name, analysis_name),
         enabled: action == null && type == 'analysis'
     })
 
@@ -65,11 +65,11 @@ export default function ExposurePage() {
                 return <div>{JSON.stringify(error)}</div>;
             }
 
-            if (method == null) {
+            if (data?.method == null) {
                 return <div>The analysis doesn't have any method</div>;
             }
 
-            if (method == 'get') {
+            if (data.method == 'get') {
                 return <JinjatList title={resource?.meta?.label || exposure[1]}
                                    logo={resource?.meta?.jinjat.logo || <div/>} packageName={package_name}
                                    resources={{list: analysis_name}}

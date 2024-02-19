@@ -40,6 +40,8 @@ class JinjatErrorCode(int, Enum):
     ProjectHeaderNotSupplied = 5
     SqlNotSupplied = 6
     JmesPathParseError = 7
+    ResourceNotFound = 8
+    AmbiguousResource = 9
 
 
 class QueryError(BaseModel):

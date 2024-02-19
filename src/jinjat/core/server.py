@@ -2,8 +2,6 @@ import asyncio
 import functools
 import os
 import sys
-import time
-from typing import Optional
 
 import yaml
 from dbt.exceptions import DbtRuntimeError
@@ -43,7 +41,7 @@ async def add_cookie_header_for_cors(request: Request, call_next):
         request.headers.__dict__["_list"].append(
             (
                 "cookie".encode(),
-                f"".encode(),
+                "".encode(),
             )
         )
     response = await call_next(request)
@@ -87,7 +85,7 @@ def generate_app(config: JinjatProjectConfig, project: DbtProject) -> FastAPI:
     if len(analysis_app.routes) == 0:
         logger().warning("Could not find any analysis found with `jinjat` config")
     else:
-        logger().info(f"Serving {num_analyses} analyses that have `jinjat` config")
+        logger().info(f"Serving {num_analyses} API routes from analyses")
 
     return analysis_app
 
@@ -168,13 +166,17 @@ def mount_app(app: FastAPI, project: DbtProject, dbt_target: DbtTarget):
         app.add_route("/",
                       lambda request: JSONResponse(homepage_without_ui(str(request.base_url), project, dbt_target)))
 
-    app.mount(f"/", current_app)
+    app.mount("/", current_app)
 
 
 def get_multi_tenant_app(target: DbtTarget):
     project = app.state.dbt_project_container.add_project(target)
     try:
         mount_app(app, project, target)
+    except InvalidJinjaConfig as e:
+        # hide stacktrace
+        logger().error(str(e))
+        sys.exit(1)
     except Exception as e:
         logger().error("Unable to start the server", exc_info=e)
         sys.exit(1)

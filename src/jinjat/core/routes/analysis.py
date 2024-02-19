@@ -1,6 +1,5 @@
 import functools
 import itertools
-import json
 import re
 import sys
 from copy import deepcopy
@@ -26,7 +25,7 @@ from jinjat.core.dbt.dbt_project import DbtProject
 from jinjat.core.exceptions import InvalidJinjaConfig, ExecuteSqlFailure
 from jinjat.core.log_controller import logger
 from jinjat.core.models import generate_dbt_context_from_request, JinjatExecutionResult, JinjatAnalysisConfig, \
-    JinjatProjectConfig
+    JinjatProjectConfig, RequestSchema
 from jinjat.core.routes.admin import _execute_jinjat_query
 from jinjat.core.schema.data_type import get_json_schema_from_data_type
 from jinjat.core.util.api import get_human_readable_error, rapidoc_html, register_jsonapi_exception_handlers, \
@@ -60,6 +59,8 @@ async def handle_analysis_api(project: DbtProject,
         if query_result.total_rows is not None:
             response.headers['x-total-count'] = str(query_result.total_rows)
     except ExecuteSqlFailure as execution_err:
+        logger().error(
+            f"Unable executing query: {execution_err.dbt_exception}\n\n{execution_err.compiled_sql or execution_err.raw_sql}")
         jinjat_result = JinjatExecutionResult(request=context, compiled_sql=execution_err.compiled_sql, raw_sql=sql,
                                               error=str(execution_err.dbt_exception))
     if context.is_debug_enabled():
@@ -80,7 +81,7 @@ async def handle_analysis_api(project: DbtProject,
 def create_components_from_nodes(project: DbtProject):
     schema_nodes = filter(
         lambda node: node.resource_type in ['model', 'seed', 'source', 'analysis']
-                     # and ('jinjat' in node.meta or 'jinjat' in node.config)
+        # and ('jinjat' in node.meta or 'jinjat' in node.config)
         ,
         # https://stackoverflow.com/questions/11941817/how-can-i-avoid-runtimeerror-dictionary-changed-size-during-iteration-error
         project.dbt.nodes.copy().values())
@@ -98,7 +99,8 @@ def create_components_from_nodes(project: DbtProject):
             openapi = jinjat.get('schema')
             default_col_schema = get_json_schema_from_data_type(project, column.data_type)
             if openapi is not None:
-                col_schema = Schema.parse_obj(always_merger.merge(default_col_schema.dict(exclude_unset=True), openapi))
+                col_schema = Schema.parse_obj(
+                    always_merger.merge(default_col_schema.dict(exclude_unset=True, by_alias=True), openapi))
             else:
                 col_schema = default_col_schema
             if jinjat.get('enum') is not None:
@@ -107,7 +109,29 @@ def create_components_from_nodes(project: DbtProject):
                 pass
             col_schema.description = col_schema.description or column.description
             schema.properties[column.name] = col_schema
-        components[node.unique_id] = schema.dict(exclude_unset=True)
+        if len(node.columns) == 0 and "jinjat" in node.config.extra:
+            try:
+                jinjat = JinjatAnalysisConfig.parse_obj(node.config.extra['jinjat'] or {})
+            except ValidationError as e:
+                raise InvalidJinjaConfig(node.patch_path, node.original_file_path, get_human_readable_error(e))
+
+            if isinstance(jinjat.method, str):
+                methods = [jinjat.method]
+            elif isinstance(jinjat.method, list):
+                methods = jinjat.method
+            else:
+                methods = ["get"]
+
+            if any(m in ['post', 'patch'] for m in methods):
+                schema = jinjat.request.body if jinjat.request is not None else None
+            elif any(m in ['get', 'delete', 'head'] for m in methods):
+                schema = jinjat.response.content if jinjat.response is not None else None
+
+        if schema is not None and schema.ref is None:
+            value = schema.dict(exclude_unset=True, by_alias=True)
+            components[node.unique_id] = value
+        else:
+            pass
     return components
 
 
@@ -249,9 +273,12 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
                           include_in_schema=False)
         # sub_app.add_route("/elements", functools.partial(elements_html, CustomButton("Admin APIs", "/")),
         #               include_in_schema=False)
-        sub_app.add_route(f"/{package_name}/openapi.json",
-                          functools.partial(custom_openapi, project, jinjat_project_config, sub_app),
-                          include_in_schema=True)
+
+        openapi_partial = functools.partial(custom_openapi, project, jinjat_project_config, sub_app)
+        sub_app.add_route(f"/{package_name}/openapi.json", openapi_partial, include_in_schema=True)
+
+        if package_name == project.project_name:
+            sub_app.add_route("/_/openapi.json", openapi_partial, include_in_schema=False)
 
         for node in analyses:
             if 'jinjat' not in node.config.extra:
@@ -262,7 +289,16 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
                 except ValidationError as e:
                     raise InvalidJinjaConfig(node.patch_path, node.original_file_path, get_human_readable_error(e))
 
-            methods = [jinjat_config.method] if jinjat_config.method is not None else ["GET"]
+            if jinjat_config.method is not None:
+                if isinstance(jinjat_config.method, str):
+                    methods = [jinjat_config.method]
+                elif isinstance(jinjat_config.method, list):
+                    methods = jinjat_config.method
+                else:
+                    raise Exception
+            else:
+                methods = ["get"]
+
             openapi = jinjat_config.openapi
             fetch_enabled = jinjat_config.fetch
 
@@ -293,11 +329,12 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
             # if openapi.requestBody.content.get('application/json').schema()
 
             openapi_dict = openapi.dict(by_alias=True, exclude_none=True, exclude_unset=True)
+            request = jinjat_config.request or RequestSchema()
             try:
-                transform_request = compile_transform(jinjat_config.request.transform)
+                transform_request = compile_transform(request.transform)
             except Exception as e:
                 raise InvalidJinjaConfig(node.original_file_path, None,
-                                         f"Unable to parse `transform_request` jmespath expression {jinjat_config.request.transform}: {e}")
+                                         f"Unable to parse `transform_request` jmespath expression {request.transform}: {e}")
 
             transform = None if jinjat_config.response is None else jinjat_config.response.transform
             try:
@@ -321,7 +358,11 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
                                          transform_request,
                                          transform_response, fetch_enabled)
             analysis_lookup[node.unique_id] = endpoint
-            sub_app.add_api_route(f'/{package_name}/{project.config.dependencies[package_name].version}/{api_path}',
+            version = project.config.dependencies[package_name].version
+            full_path_for_analysis = f'/{package_name}/{version}/{api_path}'
+            endpoint.__name__ = f"{','.join(methods)} {full_path_for_analysis}"
+
+            sub_app.add_api_route(full_path_for_analysis,
                                   endpoint=endpoint,
                                   tags=node.tags,
                                   description=node.description if node.description else None,
@@ -330,7 +371,7 @@ def create_analysis_apps(jinjat_project_config: JinjatProjectConfig, project: Db
                                   operation_id=re.sub(r"\W", "_", node.name),
                                   name=node.alias,
                                   openapi_extra=openapi_dict)
-        api.mount(f"/", sub_app)
+        api.mount("/", sub_app)
     unregister_openapi_validators()
 
     return api

@@ -8,7 +8,7 @@ const openai = new OpenAI({
 
 export const runtime = "edge";
 
-export async function POST(req: Request): Promise<Response> {
+export default async function POST(req: Request): Promise<Response> {
     const forwardedProps = await req.json();
 
     const response = await openai.chat.completions.create({
@@ -22,6 +22,7 @@ export async function POST(req: Request): Promise<Response> {
             { name, arguments: args },
             createFunctionCallMessages
         ) => {
+            console.log(createFunctionCallMessages)
             return undefined; // returning undefined to avoid sending any messages to the client when a function is called. Temporary, bc currently vercel ai sdk does not support returning both text and function calls -- although the API does support it.
         },
     });

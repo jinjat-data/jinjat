@@ -21,15 +21,15 @@ import {ColorModeContextProvider} from "@contexts";
 import {
     Alert,
     AlertTitle,
-    Box,
+    Box, Button,
     Card,
     CardContent,
     Container,
     CssBaseline,
-    GlobalStyles,
+    GlobalStyles, Portal,
 } from "@mui/material";
 import {authProvider} from "src/authProvider";
-import React, {useState} from "react";
+import React from "react";
 import {createResources} from "src/refine/createResources";
 import {useJinjatProject} from "@components/hooks/useJinjatProject";
 import {jinjatProvider} from "@components/hooks/schema";
@@ -159,9 +159,11 @@ function JinjatApp({Component, pageProps}: AppPropsWithLayout): JSX.Element {
                             </RefineSnackbarProvider>
                         </ColorModeContextProvider>
                     </KBarProvider>
-                    <CopilotSidebarUIProvider >
-                        test
-                    </CopilotSidebarUIProvider>
+                    <Portal>
+                        {/*<CopilotSidebarUIProvider >*/}
+                        {/*    <Button>test</Button>fsdfsd*/}
+                        {/*</CopilotSidebarUIProvider>*/}
+                    </Portal>
                 </QueryClientProvider>
             </LocalizationProvider>
             </CopilotProvider>

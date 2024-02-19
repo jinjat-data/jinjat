@@ -1,3 +1,4 @@
+import sys
 from typing import Optional
 
 from pydantic import BaseModel
@@ -7,12 +8,14 @@ class DbtExecutionError(BaseModel):
     compiled_sql: Optional[str]
     error: str
 
-class InvalidJinjaConfig(SystemExit):
+class InvalidJinjaConfig(Exception):
 
     def __init__(self, schema_file_path: str, sql_file_path: str, *args: object) -> None:
-        super().__init__(*args)
+        first_arg = f"Error processing config for model in {sql_file_path} under ${schema_file_path}. {args[0]}"
+        super().__init__(first_arg, *args[1:])
         self.schema_file_path = schema_file_path
         self.sql_file_path = sql_file_path
+
 
 
 class ExecuteSqlFailure(RuntimeError):

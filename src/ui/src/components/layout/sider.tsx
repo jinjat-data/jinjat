@@ -37,6 +37,7 @@ import ChevronUpDownIcon from "@heroicons/react/24/solid/ChevronUpDownIcon";
 import _ from "lodash";
 import {JinjatProject} from "@components/hooks/useJinjatProject";
 import {useResource} from "@refinedev/core/src/hooks";
+import {TreeMenuItem} from "@refinedev/core/src/hooks/menu/useMenu";
 
 export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps & { project: JinjatProject }> = ({
                                                                                                          Title: TitleFromProps,
@@ -66,9 +67,14 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps & { project:
     const translate = useTranslate();
 
     const {menuItems, selectedKey, defaultOpenKeys} = useMenu({meta});
-    if (project.openapi.refine.sidebar_menu != null) {
-        // debugger
-    }
+
+    let finalMenuItems : TreeMenuItem[]
+    // if (project.openapi.refine.sidebar_menu != null) {
+        // TODO: resource all the objects recursively and replace with menuItems.find(item => item.route == $item)
+        // finalMenuItems = project.openapi.refine.sidebar_menu;
+    // } else {
+        finalMenuItems =  menuItems;
+    // }
 
     const TitleFromContext = useTitle();
 
@@ -105,7 +111,7 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps & { project:
                 undefined
             );
 
-            if (children.length > 0) {
+            if (children != null && children.length > 0) {
                 return (
                     <CanAccess
                         key={item.key}
@@ -315,7 +321,7 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps & { project:
     ) : null;
 
 
-    const items = renderTreeView(menuItems, selectedKey);
+    const items = renderTreeView(finalMenuItems, selectedKey);
 
     const renderSider = () => {
         if (render) {

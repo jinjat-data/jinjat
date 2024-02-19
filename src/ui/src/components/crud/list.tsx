@@ -7,12 +7,9 @@ import {Generate, JsonSchema} from "@jsonforms/core";
 import {JinjatListProps} from "@components/crud/utils";
 import {fmt} from "@components/chart/formatting";
 import {JinjatJsonSchema} from "@components/hooks/schema";
-import {Alert, AlertTitle, Box, Card, LinearProgress, Skeleton, Typography} from "@mui/material";
+import {LinearProgress, Skeleton} from "@mui/material";
 import {actionsColumn, getDataGridType} from "../../utils/grid";
 import _ from "lodash";
-import {EditorCode} from "@components/code/editor-code";
-import {border} from "@mui/system";
-import {AlertOctagon} from "lucide-react";
 import {QueryErrorComponent} from "@components/common/queryError";
 
 export const JinjatList: React.FC<JinjatListProps> = ({

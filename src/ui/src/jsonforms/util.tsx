@@ -142,7 +142,7 @@ export const extractJsonSchemaFromOpenAPIParameters = (
 const jinjatMaterialRenderers = materialRenderers.map((it) => ({
     tester: it.tester,
     renderer: (args: React.JSX.IntrinsicAttributes) => {
-        return (
+        return args.enabled != false && (
             <Box
                 sx={{display: "flex", flexDirection: "column"}}
                 style={{marginTop: "10px"}}

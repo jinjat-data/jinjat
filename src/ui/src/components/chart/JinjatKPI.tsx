@@ -7,9 +7,7 @@ export interface JinjatKPIProps {
 }
 
 export const JinjatKPI: React.FC<JinjatKPIProps> = ({
-                                                            dataset,
-                                                            options,
-                                                            theme,
+                                                            dataset
                                                         }) => {
     return <Box
         sx={{

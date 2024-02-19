@@ -2,6 +2,7 @@ import {AxiosInstance} from "axios";
 import {stringify} from "query-string";
 import {JsonSchema} from "@jsonforms/core";
 import {axiosInstance} from "src/analysis-data-provider/utils";
+import {TreeMenuItem} from "@refinedev/core/src/hooks/menu/useMenu";
 
 enum FieldType {
     Boolean, Number, TimeDelta, Date, DateTime, Text
@@ -30,9 +31,8 @@ export type ExposureRefineConfig = {
 
 export interface ExposureJinjatConfig {
     refine: ExposureRefineConfig,
-    analysis? : string
+    analysis?: string
 }
-
 
 
 export interface Owner {
@@ -62,18 +62,19 @@ export interface JinjatResource {
 }
 
 export interface SidebarMenu {
-    link: string,
-    children: SidebarMenu[],
+    route?: string,
+    children: TreeMenuItem[],
     label: string,
 }
 
 export interface ProjectRefineConfig {
-    sidebar_menu: SidebarMenu[]
+    sidebar_menu: TreeMenuItem[]
 }
+
 export interface JinjatOpenAPI {
-    jsonforms? : { renderers: Map<string, string> }
+    jsonforms?: { renderers: Map<string, string> }
     refine: ProjectRefineConfig
-    importmaps? : string[]
+    importmaps?: string[]
 }
 
 export interface JinjatManifest {
@@ -123,11 +124,18 @@ export interface OpenAPIParameter {
     description?: string
 }
 
-export type JinjatJsonSchema = {"x-pk"?: string, "x-jsonforms"?: {renderer?: string}} & JsonSchema
+export type JinjatJsonSchema = { "x-pk"?: string, "x-jsonforms"?: { renderer?: string } } & JsonSchema
 
 export interface JinjatSchema {
     parameters: Array<OpenAPIParameter>
     schema: JinjatJsonSchema
+}
+
+export interface JinjatAnalysis {
+    method: string,
+    parameters: Array<OpenAPIParameter>,
+    requestSchema: JinjatJsonSchema,
+    responseSchema: JinjatJsonSchema
 }
 
 export interface IJinjatContextProvider {
@@ -143,12 +151,12 @@ export interface IJinjatContextProvider {
 
     getManifest: () => Promise<JinjatManifest>
     getProject: (params: {
-                     packageName: string,
-                 }) => Promise<JinjatOpenAPI>
+        packageName: string | null
+    }) => Promise<JinjatOpenAPI>
 
     getApiUrl: () => string
 
-    getAnalysisMethod: (packageName: string, analysis: string) => Promise<string | null>
+    getAnalysisApi: (packageName: string, analysis: string) => Promise<JinjatAnalysis | null>
 
     getDashboard: (packageName: string, exposure: string) => Promise<Dashboard>
 
@@ -166,14 +174,14 @@ const OPENAPI_PROJECT_QUERY = '{refine: "x-jinjat".refine, security: security, s
 const MAIN_README_QUERY = 'docs."doc.{{project_name}}.__overview__".projection(\'file_path, content\', original_file_path, block_contents)'
 const ALL_DBT_NODES = 'nodes.* | [?resource_type==\'model\' || resource_type==\'source\' || resource_type==\'seed\' || resource_type==\'analysis\'].{package_name: package_name, name: name, resource_type: resource_type, unique_id: unique_id}'
 
-const GET_ANALYSIS_METHOD = (packageName : string, analysis: string) => `nodes."analysis.${packageName}.${analysis}".config.jinjat.method`
-const GET_DASHBOARD_EXPOSURE = (packageName : string, exposure: string) => `exposures."exposure.${packageName}.${exposure}".projection(\`parameters, items\`, meta.jinjat.parameters meta.jinjat.items)`
+const GET_ANALYSIS = (packageName: string, analysis: string) => `paths.*. {method: keys(@)[0], values: @.*} .include_method_in_api(@)  | [?operationId=='${analysis}'] | [0] .{parameters: parameters, requestSchema: requestBody.content."application/json".schema, responseSchema: responses."200".content."application/json".schema, method: method}`
+const GET_DASHBOARD_EXPOSURE = (packageName: string, exposure: string) => `exposures."exposure.${packageName}.${exposure}".projection(\`parameters, items\`, meta.jinjat.parameters meta.jinjat.items)`
 
 
 export const jinjatProvider = (
     apiUrl: string,
     httpClient: AxiosInstance = axiosInstance,
-): IJinjatContextProvider => <IJinjatContextProvider>({
+): IJinjatContextProvider => ({
 
     getManifest(): Promise<JinjatManifest> {
         let queryParams = stringify({jmespath: EXPOSURES_QUERY})
@@ -191,13 +199,13 @@ export const jinjatProvider = (
     getProject({packageName}): Promise<JinjatOpenAPI> {
         let queryParams = stringify({jmespath: OPENAPI_PROJECT_QUERY})
         return httpClient.get(
-            `${apiUrl}/${packageName}/openapi.json?${queryParams}`,
+            `${apiUrl}/${packageName || '_'}/openapi.json?${queryParams}`,
         ).then(result => {
             return result.data
         });
     },
 
-    getDashboard(packageName : string, exposure : string): Promise<Dashboard> {
+    getDashboard(packageName: string, exposure: string): Promise<Dashboard> {
         let jmespath = stringify({jmespath: GET_DASHBOARD_EXPOSURE(packageName, exposure)});
         return httpClient.get(
             `${apiUrl}/admin/manifest.json?${jmespath}`,
@@ -208,10 +216,10 @@ export const jinjatProvider = (
         return apiUrl;
     },
 
-    getAnalysisMethod(packageName: string, analysis: string): Promise<string | null> {
-        let jmespath = stringify({jmespath: GET_ANALYSIS_METHOD(packageName, analysis)});
+    getAnalysisApi(packageName: string, analysis: string): Promise<JinjatAnalysis | null> {
+        let jmespath = stringify({jmespath: GET_ANALYSIS(packageName, analysis)});
         return httpClient.get(
-            `${apiUrl}/admin/manifest.json?${jmespath}`,
+            `${apiUrl}/${packageName}/openapi.json?${jmespath}`,
         ).then(result => result.data);
     },
 

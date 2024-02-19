@@ -19,6 +19,16 @@ class CustomFunctions(jmespath.functions.Functions):
         for i, key in enumerate(picked):
             ret[key] = values[i]
         return ret
+    @jmespath.functions.signature(
+        {'types': ['array']})
+    def _func_include_method_in_api(self, values):
+        full_list = []
+        for apis in values:
+            for value in apis.get('values'):
+                value['method'] = apis.get('method')
+                full_list.append(value)
+        return full_list
+
 
 
 def json_query(data, expr):

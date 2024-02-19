@@ -2,9 +2,10 @@ import React from 'react';
 import {OpenAPIParameter} from '@components/hooks/schema';
 import {Box, Button, Card, CardActions, CardContent, CardHeader, Typography} from "@mui/material";
 import {extractJsonSchemaFromOpenAPIParameters} from "./util";
-import {useRouter} from "next/router";
 import {JinjatForm} from "./JinjatForm";
 import { stringify } from "query-string";
+import {useParams, useSearchParams} from "next/navigation";
+import {useRouter} from "next/router";
 
 export interface JinjatAnalysisFormProps {
     parameters: OpenAPIParameter[];
@@ -27,8 +28,10 @@ const getPathParams = function (pathsList: any[]) {
 
 const JinjatAnalysisForm: React.FC<JinjatAnalysisFormProps> = ({parameters, action : actionFromProps}) => {
     const router = useRouter();
+    const searchParams = useSearchParams()
 
-    let resource_type = Object.keys(router.query)[0];
+    const params = useParams();
+    let resource_type = Object.keys(params)[0];
     let [package_name, version, name, action, ...pathsList] = router.query[resource_type]
 
     let queryParamsSchema = React.useMemo(() => {
@@ -39,13 +42,15 @@ const JinjatAnalysisForm: React.FC<JinjatAnalysisFormProps> = ({parameters, acti
         return extractJsonSchemaFromOpenAPIParameters(parameters.filter(param => param.in == "path"));
     }, [parameters]);
 
-    const [queryParams, setQueryParams] = React.useState(null)
+    let initialQueryParams = Object.fromEntries(searchParams.entries());
+    const [queryParams, setQueryParams] = React.useState(initialQueryParams)
     const [pathParams, setPathParams] = React.useState(getPathParams(pathsList))
 
     function redirectPage() {
         let pathParamsSerialized = Object.keys(pathParams).map(key => `${key}:${pathParams[key]}`).join('/');
         let queryParamsSerialized = stringify(queryParams)
-        router.push(`/${resource_type}/${package_name}/${version}/${name}/${action || actionFromProps}/${pathParamsSerialized}${queryParamsSerialized}`)
+        let newUrl = `/${resource_type}/${package_name}/${version}/${name}/${action || actionFromProps}/${pathParamsSerialized}${queryParamsSerialized}`;
+        router.push(newUrl)
     }
 
     return (
