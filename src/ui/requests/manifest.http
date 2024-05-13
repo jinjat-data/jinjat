@@ -1,8 +1,0 @@
-# curl http://127.0.0.1:8581/admin/manifest.json?jmespath=exposures.%2A%20%7C%20%5B%3Fnot_null%28meta.jinjat%29%5D.projection%28%60name%2C%20type%2C%20unique_id%2C%20description%2C%20package_name%2C%20jinjat%2C%20owner%2C%20label%60%2C%20name%2C%20type%2C%20identifier%2C%20description%2C%20package_name%2C%20meta.jinjat%2C%20owner%2C%20label%29
-GET http://127.0.0.1:8581/admin/manifest.json?jmespath=exposures.* | [?not_null(meta.jinjat)]
-    .{name: name, type: type, unique_id: unique_id, description: description, package_name: package_name, jinjat: meta.jinjat, owner: owner, label: label}
-
-
-###
-
-GET http://127.0.0.1:8581/admin/manifest.json?jmespath=nodes.* | [?resource_type=='model' || resource_type=='source' || resource_type=='seed' || resource_type=='analysis'].{package_name: package_name, name: name, resource_type: resource_type, unique_id: unique_id}

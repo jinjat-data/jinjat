@@ -28,7 +28,6 @@
 <div align="center">
 
 [![Awesome](https://github.com/refinedev/awesome-refine/raw/main/images/badge.svg)](https://github.com/refinedev/awesome-refine)
-[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8101/badge)](https://www.bestpractices.dev/projects/8101)
 [![npm version](https://img.shields.io/npm/v/@refinedev/core.svg)](https://www.npmjs.com/package/@refinedev/core)
 [![](https://img.shields.io/github/commit-activity/m/refinedev/refine)](https://github.com/refinedev/refine/commits/master)
 [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.0-4baaaa.svg)](CODE_OF_CONDUCT.md)
@@ -86,7 +85,7 @@ You have the freedom to select your preferred libraries and frameworks, and the 
 
 **Refine** shines on _data-intensive⚡_ enterprise B2B applications like **admin panels**, **dashboards** and **internal tools**. Thanks to the built-in **SSR support**, it can also power _customer-facing_ applications like **storefronts**.
 
-You can take a look at some live examples that can be built using **Refine** from scratch:
+You can take a look at some live examples that can be built using **refine** from scratch:
 
 - [Fully-functional CRM Application](https://example.crm.refine.dev/)
 - [Fully-functional Admin Panel](https://s.refine.dev/readme-admin-panel)
@@ -149,7 +148,7 @@ npm run dev
 
 Your **Refine** application will be accessible at [http://localhost:5173](http://localhost:5173):
 
-<a href="http://localhost:5173">![Welcome on board](https://refine.ams3.cdn.digitaloceanspaces.com/website/static/img/new-welcome.png)</a>
+<a href="http://localhost:5173">![Welcome on board](https://refine.ams3.cdn.digitaloceanspaces.com/website/static/img/welcome.png)</a>
 
 <br/>
 

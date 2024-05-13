@@ -130,4 +130,5 @@ dmypy.json
 
 # IDE
 .idea/*
+src/ui/.idea/*
 .DS_Store
