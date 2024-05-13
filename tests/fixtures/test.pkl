@@ -1,0 +1,35 @@
+name: String = "Writing a Template"
+
+part: Int = 3
+
+hasExercises: Boolean = true
+
+amountLearned: Float = 13.37
+
+duration: Duration = -30.min
+
+bandwidthRequirementPerSecond: DataSize = 50.mib
+
+class Language {
+  name: String
+}
+
+bestForConfig: Language = new {
+  name = "Pkl"
+}
+
+names = List("Pigeon", "Barn owl", "Parrot")
+
+analysis {
+  name
+  bestForConfig {
+    name = new Language {}
+  }
+}
+birds {
+  (names.map) { name ->
+    new Language {
+      name = "test"
+    }
+  }
+}

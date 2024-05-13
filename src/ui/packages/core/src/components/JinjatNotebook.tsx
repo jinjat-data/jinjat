@@ -6,7 +6,6 @@ import {
     Alert,
     AlertTitle
 } from "@mui/material";
-import Markdoc from '@markdoc/markdoc';
 
 import {JinjatFormProps} from "@components/refine/utils";
 
@@ -47,9 +46,6 @@ export const JinjatNotebook: React.FC<JinjatFormProps> = ({packageName, resource
         return <div>Loading..</div>
     }
 
-    const ast = Markdoc.parse(doc.content);
-    // @ts-ignore
-    const content = Markdoc.transform(ast, {nodes: markdocConfig.jinjatNodes, tags: markdocConfig.tags, variables: {}, functions: {}, partials: {}});
     // const react = Markdoc.renderers.react(content, React, {components: markdocConfig.components});
     // return react as ReactElement;
     return null!!
