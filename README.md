@@ -2,6 +2,8 @@
 
 ## Develop data applications with dbt, SQL, and OpenAPI
 
+[Jinj.at](https://jinj.at)
+
 ### Installation
 
 ```commandline
@@ -56,21 +58,3 @@ It should return the following response:
 ```
 
 Jinjat uses OpenAPI to validate the requests and create an API documentation automatically for your API.
-
-## Integrations
-
-poetry install --extras "duckdb"
-
-### Playground
-
-poetry install --extras "playground"
-
-
-#### Installation
-
-```commandline
-pip install jinjat[playground]
-```
-
-Jinjat Playground is a Streamlit app that lets you develop APIs in your browser.
-Once you write the template, you can save it to your dbt project as an analysis and expose the API.
