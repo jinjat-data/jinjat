@@ -31,6 +31,7 @@ export const JinjatShow: React.FC<JinjatListProps> = ({packageName, version, res
 
 
     if (dataError != null) {
+        // @ts-ignore
         return <QueryErrorComponent message={`Unable fetching ${analysisReference}`} errors={dataError.response.data.errors}/>
     }
 

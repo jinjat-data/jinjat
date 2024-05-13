@@ -53,10 +53,9 @@ export const JinjatForm: React.FC<JinjatJsonFormsInitStateProps<any>> = (props) 
                 return {
                     type: "array",
                     items: itemSchema
-                }
+                } as JsonSchema
             } else {
-                let jsonSchema = Generate.jsonSchema(props.data);
-                return jsonSchema;
+                return Generate.jsonSchema(props.data);
             }
         } else {
             return props.schema;

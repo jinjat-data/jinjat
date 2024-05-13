@@ -9,9 +9,11 @@ interface JinjatLineChartsProps extends JinjatEChartsProps {
 
 export const JinjatLineChart: React.FC<JinjatLineChartsProps> = (props) => {
     const options = props.options || {}
+    // @ts-ignore
     if(options.series != null) {
         return <div>`options.series` is not null, please use `ECharts` component instead.</div>
     }
+    // @ts-ignore
     options.series = [{ type: 'line', encode: {
             x: props.x,
             y: props.y

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { TreeView } from '@mui/x-tree-view/TreeView';
-import { TreeItem } from '@mui/x-tree-view/TreeItem';
+// import { TreeView } from '@mui/x-tree-view/TreeView';
+// import { TreeItem } from '@mui/x-tree-view/TreeItem';
 import Box from '@mui/material/Box';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
@@ -16,6 +16,7 @@ import TextField from '@mui/material/TextField';
 import DeleteIcon from '@mui/icons-material/Delete';
 import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
+import {TreeItem, TreeView} from "@mui/lab";
 
 interface FileExplorerProps {
   filePaths: string[];
@@ -137,7 +138,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ filePaths, onFileSel
     const newFilePath = `${expandedIds[0]}/${newFileName}`;
     const newFilePaths = [...filePaths, newFilePath];
     // Update the file paths and close the dialog
-    setFilePaths(newFilePaths);
+    // setFilePaths(newFilePaths);
     setIsCreateFileDialogOpen(false);
     setNewFileName('');
   };
@@ -151,7 +152,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ filePaths, onFileSel
     // Delete the file
     const newFilePaths = filePaths.filter(path => path !== fileToDelete);
     // Update the file paths and close the dialog
-    setFilePaths(newFilePaths);
+    // setFilePaths(newFilePaths);
     setIsDeleteFileDialogOpen(false);
     setFileToDelete('');
   };
@@ -228,7 +229,7 @@ export const FileExplorer: React.FC<FileExplorerProps> = ({ filePaths, onFileSel
         open={isContextMenuOpen}
         onClose={handleContextMenuClose}
         anchorReference="anchorPosition"
-        anchorPosition={contextMenuPosition}
+        // anchorPosition={contextMenuPosition}
       >
         {contextMenuItems.map((item, index) => (
           <MenuItem key={index} onClick={item.onClick}>{item.label}</MenuItem>

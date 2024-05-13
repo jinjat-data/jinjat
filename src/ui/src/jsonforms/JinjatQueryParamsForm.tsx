@@ -1,5 +1,5 @@
 import {useRouter} from 'next/router';
-import {useState} from 'react';
+import React, {useState} from 'react';
 import {JinjatForm, JinjatJsonFormsInitStateProps} from './JinjatForm';
 import {ParsedUrlQuery} from 'querystring';
 

@@ -2,8 +2,20 @@ import React from "react";
 import {Alert, AlertTitle, Box, Card, Typography} from "@mui/material";
 import {EditorCode} from "@components/code/editor-code";
 
-export const QueryErrorComponent: React.FC<{message: string, errors: object[]}> = ({message, errors}) => {
+
+export type JinjatError = {
+    error?: JinjatErrorItem
+    message: string
+    code: string}
+
+export type JinjatErrorItem = {
+    compiled_sql? : string,
+    sql? : string,
+}
+
+export const QueryErrorComponent: React.FC<{message: string, errors: JinjatError[]}> = ({message, errors}) => {
     console.error(errors)
+
     return <Box>
         {errors.map(error => (
             <Alert severity="error">

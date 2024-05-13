@@ -8,11 +8,12 @@ import {
     TableCell,
     TableFooter, TableHead,
     TableProps, TableRow,
-    Typography
+    Typography,
+    Paper,
+    Unstable_Grid2 as Grid,
+    TypographyOwnProps
 } from "@mui/material";
-import Grid from "@mui/material/Unstable_Grid2";
-import Paper from "@mui/material/Paper";
-import React, {Component, ReactNode} from "react";
+import React, {ReactNode} from "react";
 import BarsArrowUpIcon from "@heroicons/react/24/outline/BarsArrowUpIcon";
 import ListBulletIcon from "@heroicons/react/24/outline/ListBulletIcon";
 import Bars3Icon from "@heroicons/react/24/solid/Bars3Icon";
@@ -21,7 +22,6 @@ import FolderIcon from "@heroicons/react/24/outline/FolderIcon";
 import DocumentChartBarIcon from "@heroicons/react/24/outline/DocumentChartBarIcon";
 import {JinjatResource} from "@components/hooks/schema";
 import WindowIcon from "@heroicons/react/24/outline/WindowIcon";
-import {Observe} from "mdx-state";
 import {JinjatCreate} from "@components/crud/create";
 import {JinjatShow} from "@components/crud/show";
 import {JinjatEdit} from "@components/crud/edit";
@@ -30,6 +30,7 @@ import {JinjatDashboard} from "@components/dashboard/dashboard";
 import {JinjatNotebook} from "@components/notebook/JinjatNotebook";
 import _ from "lodash";
 import AllHeroIcons from "@heroicons/react/24/outline"
+import {CommonProps} from "@mui/material/OverridableComponent";
 
 export const getScrollbarStyles = (palette: Palette) => ({
     '::-webkit-scrollbar': {
@@ -50,9 +51,9 @@ export const getScrollbarStyles = (palette: Palette) => ({
     },
 });
 
-export const muiComponents = {
+export const jinjatMuiComponents: { [key: string]: (props: React.PropsWithChildren<any>) => React.ReactElement | null } = {
     a: props => <Link {...props} />,
-    h1: props => <Typography variant={"h1"} {...props} />,
+    h1: (props) => <Typography variant={"h1"} {...props} />,
     h2: props => <Typography variant={"h2"} {...props} />,
     h3: props => <Typography variant={"h3"} {...props} />,
     h4: props => <Typography variant={"h4"} {...props} />,
@@ -96,14 +97,14 @@ export const muiComponents = {
     thead: props => <TableHead {...props} />,
     tr: props => <TableRow {...props} />,
     // pre: props => <PreBlock {...props} />,
-    Grid: Grid,
-    Paper: Paper,
+    Grid,
+    Paper,
     Box, Card, CardHeader, CardContent,
     Slider,
     Blockquote: Box
 };
 
-export const allComponents = {...muiComponents, ...allChartComponents}
+export const allComponents = {...jinjatMuiComponents, ...allChartComponents}
 
 const exposureIcons = {
     "create": BarsArrowUpIcon,
@@ -115,7 +116,7 @@ const exposureIcons = {
 }
 
 export const actions = {
-    "create": JinjatNotebook,
+    "create": JinjatCreate,
     "show": JinjatShow,
     "edit": JinjatEdit,
     "list": JinjatList,
@@ -124,10 +125,7 @@ export const actions = {
 }
 
 export function getIconForKeyword(value: string, fallbackComponent = WindowIcon): ReactNode | undefined {
-    // @ts-ignore
     let Icon = exposureIcons[value];
-
-
     return <Icon/>;
 }
 

@@ -1,7 +1,7 @@
-import React from "react";
+import React, {useCallback, useRef, useState} from "react";
 import {
   useGetIdentity,
-  useActiveAuthProvider,
+  useActiveAuthProvider, useIsExistAuthentication, useWarnAboutChange, useLogout,
 } from "@refinedev/core";
 import { HamburgerMenu } from "./hamburgerMenu";
 import AppBar from "@mui/material/AppBar";
@@ -9,14 +9,126 @@ import Avatar from "@mui/material/Avatar";
 import Stack from "@mui/material/Stack";
 import Toolbar from "@mui/material/Toolbar";
 import type { RefineThemedLayoutV2HeaderProps } from "@refinedev/mui";
-import {Badge, IconButton, SvgIcon, Tooltip, useMediaQuery} from "@mui/material";
+import {
+  Badge,
+  Box,
+  Divider,
+  IconButton, MenuItem,
+  MenuList,
+  Popover,
+  SvgIcon,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import MagnifyingGlassIcon from "@heroicons/react/24/solid/MagnifyingGlassIcon";
 import {alpha} from "@mui/material/styles";
 import UsersIcon from "@heroicons/react/24/solid/UsersIcon";
 import BellIcon from "@heroicons/react/24/solid/BellIcon";
 import {useKBar} from "kbar";
-import {AccountPopover} from "../../devias/layouts/dashboard/account-popover";
-import {usePopover} from "../../devias/hooks/use-popover";
+import {useRouter} from "next/navigation";
+
+const AccountPopover = (props) => {
+  const {anchorEl, onClose, open} = props;
+  const router = useRouter();
+  const authProvider = useActiveAuthProvider();
+  const isExistAuthentication = useIsExistAuthentication();
+  const {warnWhen, setWarnWhen} = useWarnAboutChange();
+  const {mutate: mutateLogout} = useLogout();
+
+  const handleSignOut = useCallback(
+      () => {
+        if (warnWhen) {
+          // const confirm = window.confirm(
+          //     t(
+          //         "warnWhenUnsavedChanges",
+          //         "Are you sure you want to leave? You have unsaved changes."
+          //     )
+          // );
+          const confirm = true;
+
+          if (confirm) {
+            setWarnWhen(false);
+            mutateLogout();
+          }
+        } else {
+          mutateLogout();
+        }
+
+        onClose?.();
+      },
+      [onClose, router]
+  );
+
+  return (
+      <Popover
+          anchorEl={anchorEl}
+          anchorOrigin={{
+            horizontal: 'left',
+            vertical: 'bottom'
+          }}
+          onClose={onClose}
+          open={open}
+          PaperProps={{sx: {width: 200}}}
+      >
+        <Box
+            sx={{
+              py: 1.5,
+              px: 2
+            }}
+        >
+          <Typography variant="overline">
+            Account
+          </Typography>
+          <Typography
+              color="text.secondary"
+              variant="body2"
+          >
+            username
+          </Typography>
+        </Box>
+        <Divider/>
+        <MenuList
+            disablePadding
+            dense
+            sx={{
+              p: '8px',
+              '& > *': {
+                borderRadius: 1
+              }
+            }}
+        >
+          <MenuItem onClick={handleSignOut}>
+            Sign out
+          </MenuItem>
+        </MenuList>
+      </Popover>
+  );
+};
+
+export function usePopover() {
+  const anchorRef = useRef(null);
+  const [open, setOpen] = useState(false);
+
+  const handleOpen = useCallback(() => {
+    setOpen(true);
+  }, []);
+
+  const handleClose = useCallback(() => {
+    setOpen(false);
+  }, []);
+
+  const handleToggle = useCallback(() => {
+    setOpen((prevState) => !prevState);
+  }, []);
+
+  return {
+    anchorRef,
+    handleClose,
+    handleOpen,
+    handleToggle,
+    open
+  };
+}
 
 export const ThemedHeaderV2: React.FC<RefineThemedLayoutV2HeaderProps> = ({
   sticky,

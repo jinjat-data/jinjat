@@ -4,9 +4,6 @@ import {
     ITreeMenu,
     useTitle,
     useTranslate,
-    useRouterContext,
-    useRouterType,
-    useLink,
     useMenu,
     useRefineContext,
     pickNotDeprecated,
@@ -36,16 +33,28 @@ import {Button, ButtonBase, Divider, NativeSelect, Stack, SvgIcon, Typography} f
 import ChevronUpDownIcon from "@heroicons/react/24/solid/ChevronUpDownIcon";
 import _ from "lodash";
 import {JinjatProject} from "@components/hooks/useJinjatProject";
-import {useResource} from "@refinedev/core/src/hooks";
-import {TreeMenuItem} from "@refinedev/core/src/hooks/menu/useMenu";
+import {IResourceItem} from "@refinedev/core";
+import MuiLink from "@mui/material/Link";
 
-export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps & { project: JinjatProject }> = ({
-                                                                                                         Title: TitleFromProps,
-                                                                                                         render,
-                                                                                                         meta,
-                                                                                                         activeItemDisabled = false,
-                                                                                                         project
-                                                                                                     }) => {
+
+export type FlatTreeItem = IResourceItem & {
+    key: string;
+    children: FlatTreeItem[];
+};
+
+export type TreeMenuItem = FlatTreeItem & {
+    route?: string;
+    icon?: React.ReactNode;
+    label?: string;
+    children: TreeMenuItem[];
+};
+
+export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps> = ({
+                                                                            Title: TitleFromProps,
+                                                                            render,
+                                                                            meta,
+                                                                            activeItemDisabled = false,
+                                                                        }) => {
     const {
         siderCollapsed,
         setSiderCollapsed,
@@ -58,22 +67,17 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps & { project:
         return 240;
     };
 
-    const t = useTranslate();
-    const routerType = useRouterType();
-    const Link = useLink();
-    const {Link: LegacyLink} = useRouterContext();
-    const ActiveLink = routerType === "legacy" ? LegacyLink : Link;
     const {hasDashboard} = useRefineContext();
     const translate = useTranslate();
 
     const {menuItems, selectedKey, defaultOpenKeys} = useMenu({meta});
 
-    let finalMenuItems : TreeMenuItem[]
+    let finalMenuItems: TreeMenuItem[]
     // if (project.openapi.refine.sidebar_menu != null) {
-        // TODO: resource all the objects recursively and replace with menuItems.find(item => item.route == $item)
-        // finalMenuItems = project.openapi.refine.sidebar_menu;
+    // TODO: resource all the objects recursively and replace with menuItems.find(item => item.route == $item)
+    // finalMenuItems = meta.project.openapi.refine.sidebar_menu;
     // } else {
-        finalMenuItems =  menuItems;
+    finalMenuItems = menuItems;
     // }
 
     const TitleFromContext = useTitle();
@@ -283,8 +287,6 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps & { project:
                 arrow
             >
                 <ListItemButton
-                    component={ActiveLink}
-                    to="/"
                     selected={selectedKey === "/"}
                     onClick={() => {
                         setMobileSiderOpen(false);
@@ -296,25 +298,27 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps & { project:
                         color: selectedKey === "/" ? "primary.main" : "text.primary",
                     }}
                 >
-                    <ListItemIcon
-                        sx={{
-                            justifyContent: "center",
-                            minWidth: "24px",
-                            transition: "margin-right 0.3s",
-                            marginRight: siderCollapsed ? "0px" : "12px",
-                            color: "currentColor",
-                            fontSize: "14px",
-                        }}
-                    >
-                        <Dashboard/>
-                    </ListItemIcon>
-                    <ListItemText
-                        primary={translate("dashboard.title", "Dashboard")}
-                        primaryTypographyProps={{
-                            noWrap: true,
-                            fontSize: "14px",
-                        }}
-                    />
+                    <MuiLink href={"/"}>
+                        <ListItemIcon
+                            sx={{
+                                justifyContent: "center",
+                                minWidth: "24px",
+                                transition: "margin-right 0.3s",
+                                marginRight: siderCollapsed ? "0px" : "12px",
+                                color: "currentColor",
+                                fontSize: "14px",
+                            }}
+                        >
+                            <Dashboard/>
+                        </ListItemIcon>
+                        <ListItemText
+                            primary={translate("dashboard.title", "Dashboard")}
+                            primaryTypographyProps={{
+                                noWrap: true,
+                                fontSize: "14px",
+                            }}
+                        />
+                    </MuiLink>
                 </ListItemButton>
             </Tooltip>
         </CanAccess>
@@ -443,10 +447,8 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps & { project:
 
                         }}
                     >
-                        <Link
-                            to="/"
-                            component={ActiveLink}
-                            underline="none"
+                        <MuiLink
+                            href="/"
                             sx={{
                                 display: "flex",
                                 alignItems: "center",
@@ -456,7 +458,7 @@ export const ThemedSiderV2: React.FC<RefineThemedLayoutV2SiderProps & { project:
                             <SvgIcon height="24px" width="24px">
                                 {defaultIcon}
                             </SvgIcon>
-                        </Link>
+                        </MuiLink>
                         {!siderCollapsed && (
                             <IconButton size="small" onClick={() => setSiderCollapsed(true)}>
                                 {<ChevronLeft/>}

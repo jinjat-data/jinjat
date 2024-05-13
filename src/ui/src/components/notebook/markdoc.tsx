@@ -249,11 +249,13 @@ export type ResourceProps = {
 }
 const NodeWithResource: React.FC<ResourceProps> = ({Component, props}) => {
     const router = useRouter()
-    const {exposure} = router.query
-    let [package_name, version, name, action, id] = exposure
+    let {exposure} = router.query
+    const spread = typeof exposure == "string" ? [exposure] : exposure
+    let [package_name, version, name, action, id] = spread
     const {resource} = useResource(`exposure.${package_name}.${name}`);
     let resources = resource?.meta?.jinjat?.refine?.resources;
 
+    // @ts-ignore
     return <Component packageName={package_name}
                       resources={resources}
                       action={action}
@@ -307,7 +309,11 @@ export const tags = {
                     }
                 })
 
-            return new Tag(NodeWithResource, {Component: actions[node.tag], props: {uiSchema}}, node.transformChildren(config));
+            // @ts-ignore
+            return new Tag(NodeWithResource, {
+                Component: actions[node.tag],
+                props: {uiSchema}
+            }, node.transformChildren(config));
         }
     },
     switch: {

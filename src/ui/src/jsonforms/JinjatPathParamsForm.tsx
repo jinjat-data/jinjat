@@ -1,9 +1,7 @@
 import {useRouter} from 'next/router';
-import React, {useState} from 'react';
+import React from 'react';
 import {JinjatForm, JinjatJsonFormsInitStateProps} from './JinjatForm';
 import {ParsedUrlQuery} from 'querystring';
-import {OpenAPIParameter} from '@components/hooks/schema';
-import {JsonSchema} from '@jsonforms/core';
 
 
 type JinjatPathParamsFormProps<T> = Omit<JinjatJsonFormsInitStateProps<T>, 'data'>;
@@ -25,7 +23,7 @@ const JinjatPathParamsForm: React.FC<JinjatPathParamsFormProps<ParsedUrlQuery>> 
             paths[key] = value
         })
         return paths
-    }, [router.query])
+    })
 
 
     const handleFormChange = (updatedData: ParsedUrlQuery) => {

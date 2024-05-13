@@ -2,7 +2,6 @@ import React, {useEffect} from "react";
 import {KBarPortal, KBarPositioner, KBarAnimator, KBarSearch, useRegisterActions} from "kbar";
 import {RenderResults} from "@components/kbar/renderResults";
 import {useQuery} from "@tanstack/react-query";
-import {useJinjatProvider} from "@components/hooks/useSchemaProvider";
 import {createActionsFromNodes} from "@components/kbar/index";
 import {useJinjatProject} from "@components/hooks/useJinjatProject";
 import {useRouter} from "next/router";
@@ -49,7 +48,6 @@ export const CommandBar: React.FC<{jinjatContext: IJinjatContextProvider}> = ({j
         queryKey: ["dbt-nodes"],
         queryFn: () => jinjatContext.getAllDbtNodes(),
         initialData: [],
-        cacheTime: 15000,
     })
 
     let actions = createActionsFromNodes(project?.manifest, nodes!!, router);

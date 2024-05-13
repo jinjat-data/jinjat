@@ -19,10 +19,11 @@ export const ThemedLayoutV2: React.FC<RefineThemedLayoutV2Props & {project: Jinj
   const SiderToRender = Sider ?? DefaultSider;
   const HeaderToRender = Header ?? DefaultHeader;
 
-  return (
+
+    return (
     <ThemedLayoutContextProvider initialSiderCollapsed={initialSiderCollapsed}>
       <Box display="flex" flexDirection="row">
-        <SiderToRender Title={Title} project={project} />
+        <SiderToRender Title={Title} meta={{project}} />
         <Box
           sx={[
             {

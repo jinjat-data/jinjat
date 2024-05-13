@@ -1,4 +1,4 @@
-import React, {useMemo} from "react";
+import React from "react";
 import {
     ControlProps,
     isControl,
@@ -12,23 +12,11 @@ import {JsonSchema} from "@jsonforms/core/src/models";
 import {Box, FormHelperText, Hidden, InputLabel, Rating} from "@mui/material";
 import {JinjatJsonSchema, OpenAPIParameter} from "@components/hooks/schema";
 import {EditorCode} from "@components/code/editor-code";
-import {
-    materialCells,
-    materialRenderers,
-} from "@jsonforms/material-renderers";
-import {
-    withJsonFormsControlProps,
-} from "@jsonforms/react";
+import {materialCells, materialRenderers} from "@jsonforms/material-renderers";
+import {withJsonFormsControlProps} from "@jsonforms/react";
 import merge from "lodash/merge";
-import {
-    useFocus,
-} from "@jsonforms/material-renderers";
-
-
-// const Component = dynamic(() => import(entry.module).then(mod => mod.export), {
-//     ssr: false,
-//     loading: () => <p>Loading...</p>
-// })
+import {useFocus} from "@jsonforms/material-renderers";
+import {Paper} from "@mui/material";
 
 export interface JsonFormsProxy {
     Component: React.FC<any>;
@@ -84,14 +72,14 @@ export const WrappedJsonFormsComponent = (
     };
 
     return (
-        <Hidden xsUp={!visible}>
+        <Paper sx={{display: !visible ? 'hidden' : 'block'}}>
             <InputLabel shrink={true} size={'normal'}>{label}</InputLabel>
             <props.Component value={data} onChange={onChange}/>
             <FormHelperText error={!isValid && !showDescription}>
                 {firstFormHelperText}
             </FormHelperText>
             <FormHelperText error={!isValid}>{secondFormHelperText}</FormHelperText>
-        </Hidden>
+        </Paper>
     );
 };
 
@@ -142,7 +130,9 @@ export const extractJsonSchemaFromOpenAPIParameters = (
 const jinjatMaterialRenderers = materialRenderers.map((it) => ({
     tester: it.tester,
     renderer: (args: React.JSX.IntrinsicAttributes) => {
+        // @ts-ignore
         return args.enabled != false && (
+            // @ts-ignore
             <Box
                 sx={{display: "flex", flexDirection: "column"}}
                 style={{marginTop: "10px"}}

@@ -1,6 +1,7 @@
 import PropTypes from 'prop-types';
 import NextLink from 'next/link';
 import { Box, Typography, Unstable_Grid2 as Grid } from '@mui/material';
+import React from 'react';
 
 export const AuthLayout = (props : any) => {
   const { children } = props;

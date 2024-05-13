@@ -35,7 +35,6 @@ export default function ExposurePage() {
     }
 
     if (action != null) {
-        // @ts-ignore
         const JinjatComponent = actions[action]
         if (JinjatComponent != null) {
             let resources = resource?.meta?.jinjat?.refine?.resources;

@@ -2,11 +2,6 @@ import {AxiosInstance} from "axios";
 import {stringify} from "query-string";
 import {JsonSchema} from "@jsonforms/core";
 import {axiosInstance} from "src/analysis-data-provider/utils";
-import {TreeMenuItem} from "@refinedev/core/src/hooks/menu/useMenu";
-
-enum FieldType {
-    Boolean, Number, TimeDelta, Date, DateTime, Text
-}
 
 export interface RefineResource<T> {
     list?: T;
@@ -63,12 +58,12 @@ export interface JinjatResource {
 
 export interface SidebarMenu {
     route?: string,
-    children: TreeMenuItem[],
+    children: object[],
     label: string,
 }
 
 export interface ProjectRefineConfig {
-    sidebar_menu: TreeMenuItem[]
+    sidebar_menu: object[]
 }
 
 export interface JinjatOpenAPI {
@@ -250,7 +245,7 @@ export const jinjatProvider = (
         ).then(result => result.data);
     },
 
-    getAllDbtNodes(): Promise<DbtNode> {
+    getAllDbtNodes: async () => {
         let queryParams = stringify({jmespath: ALL_DBT_NODES});
         return httpClient.get(
             `${apiUrl}/admin/manifest.json?${queryParams}`,

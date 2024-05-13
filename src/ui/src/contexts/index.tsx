@@ -8,11 +8,14 @@ import React, {
   useState,
 } from "react";
 import {createTheme} from "../theme";
+import {Button, Card, CardActions, CardContent, Typography} from "@mui/material";
 
 type ColorModeContextType = {
   mode: string;
   setMode: () => void;
 };
+
+const a = Button
 
 export const ColorModeContext = createContext<ColorModeContextType>(
   {} as ColorModeContextType

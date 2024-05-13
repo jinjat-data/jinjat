@@ -2,7 +2,6 @@ import Editor, {EditorProps, Monaco} from "@monaco-editor/react";
 import {useRef} from "react";
 import * as React from "react";
 
-
 export const EditorCode: React.FC<EditorProps & {}> = (props) => {
     const editorRef = useRef(null);
 

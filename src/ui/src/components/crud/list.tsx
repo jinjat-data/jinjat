@@ -50,6 +50,7 @@ export const JinjatList: React.FC<JinjatListProps> = ({
     })
 
     const properties = React.useMemo<JinjatJsonSchema>(() => {
+        // @ts-ignore
         let schemaProperties = jinjatSchema?.schema?.items?.properties;
         if (schemaProperties != null) {
             return schemaProperties

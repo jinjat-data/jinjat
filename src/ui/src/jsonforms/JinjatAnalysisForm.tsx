@@ -1,6 +1,6 @@
 import React from 'react';
 import {OpenAPIParameter} from '@components/hooks/schema';
-import {Box, Button, Card, CardActions, CardContent, CardHeader, Typography} from "@mui/material";
+import {Box, Button, Card, CardActions, CardContent, Typography} from "@mui/material";
 import {extractJsonSchemaFromOpenAPIParameters} from "./util";
 import {JinjatForm} from "./JinjatForm";
 import { stringify } from "query-string";

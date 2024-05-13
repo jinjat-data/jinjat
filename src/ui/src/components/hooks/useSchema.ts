@@ -10,7 +10,6 @@ import {
     useResourceSubscription,
     useTranslate,
 } from "@refinedev/core";
-import {JsonSchema} from "@jsonforms/core";
 import {useJinjatProvider} from "@components/hooks/useSchemaProvider";
 import {JinjatSchema} from "@components/hooks/schema";
 
@@ -72,7 +71,7 @@ export const useSchema = <TData extends BaseRecord = BaseRecord,
     });
 
     return useQuery<JinjatSchema, TError>(
-        [{analysis: analysis, ...config, ...metaData}] as QueryKey,
+        [{ analysis, ...config, ...metaData}],
         ({queryKey, pageParam, signal}) => {
             const [packageName, analysis_name] = analysis.split('.', 2)
             let params = {
