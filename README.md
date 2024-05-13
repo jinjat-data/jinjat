@@ -10,6 +10,15 @@
 pip install jinjat
 ```
 
+```commandline
+poetry env use python3.9
+poetry install 
+
+poetry add dbt-duckdb==1.5.0
+poetry run dbt deps --project-dir ../dbt_project_dir/
+poetry run jinjat serve --host 127.0.0.1 --project-dir ../dbt_project_dir/
+```
+
 ### Create your first API
 
 Create an [analysis]() in `analysis/my_first_api.sql`:
