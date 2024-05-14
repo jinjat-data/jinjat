@@ -19,7 +19,7 @@
     "nuke": "echo 'Removing all node_modules, builds and lockfiles'; npm run nuke:node_modules; npm run nuke:builds; npm run nuke:lockfiles;",
     "nuke:builds": "lerna exec -- rm -rf dist && lerna exec -- rm -rf .next && lerna exec -- rm -rf build",
     "nuke:node_modules": "lerna clean --yes",
-    "prepare": "cd ../../ && husky src/ui/",
+    "prepare": "cd ../../ && husky install src/ui/",
     "test": "lerna run test --stream",
     "test:all": "lerna run test --stream --scope @jinjatdata/* --scope create-jinjat-app",
     "test:all:coverage": "npm run test:all -- -- --coverage",
