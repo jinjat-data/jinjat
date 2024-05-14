@@ -2,7 +2,7 @@ import { Plugin } from "esbuild";
 import * as fs from "fs";
 import path from "path";
 
-import { getRefineCoreVersion } from "./get-refine-core-version";
+import { getJinjatCoreVersion } from "./get-jinjat-core-version";
 
 export const replaceCoreVersionPlugin: Plugin = {
     name: "replaceCoreVersion",
@@ -15,20 +15,20 @@ export const replaceCoreVersionPlugin: Plugin = {
                 ? "jsx"
                 : (extension as any);
 
-            const versionRegex = /const REFINE_VERSION = "\d.\d.\d";/gm;
+            const versionRegex = /const JINJAT_VERSION = "\d.\d.\d";/gm;
             const hasVersion = contents.match(versionRegex);
 
             if (!hasVersion) {
                 return;
             }
 
-            const version = await getRefineCoreVersion();
+            const version = await getJinjatCoreVersion();
 
             return {
                 loader,
                 contents: contents.replace(
                     versionRegex,
-                    `const REFINE_VERSION = "${version}";`,
+                    `const JINJAT_VERSION = "${version}";`,
                 ),
             };
         });
