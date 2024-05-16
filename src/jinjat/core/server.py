@@ -142,28 +142,7 @@ def mount_app(app: FastAPI, project: DbtProject, dbt_target: DbtTarget):
     admin_app.version = project.config.version
     app.mount("/admin", admin_app)
     app.add_api_route("/_notebook/{id}", endpoint=functools.partial(lookup_notebook_by_id, config, project, ))
-
-    default_refine_project = os.path.join(get_project_root(), *["src", "jinjat", "jinjat-refine"])
-    project_static_files = os.path.join(project.project_root, "static")
-
-    static_files = main_directory = None
-    if os.path.exists(project_static_files) and dbt_target.refine:
-        static_files = StaticFiles(directory=project_static_files, html=True)
-        static_files.all_directories = [project_static_files, default_refine_project]
-    else:
-        if os.path.exists(project_static_files):
-            main_directory = project_static_files
-        elif dbt_target.refine:
-            main_directory = default_refine_project
-
-        if main_directory is not None:
-            static_files = StaticFilesWithFallbackIndex(
-                fallback_home_page_response=lambda scope: homepage_without_ui(extract_host(scope), project, dbt_target),
-                directory=main_directory, html=True, enable_nextjs_route=dbt_target.refine is True)
-    if static_files is not None:
-        app.mount("/", static_files, name="static")
-    else:
-        app.add_route("/",
+    app.add_route("/",
                       lambda request: JSONResponse(homepage_without_ui(str(request.base_url), project, dbt_target)))
 
     app.mount("/", current_app)
