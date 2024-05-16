@@ -1,6 +1,7 @@
 FROM python:3.10-slim-bullseye
 
 RUN apt-get update && apt-get -y upgrade \
+    && apt-get install gcc  \
     && pip install --upgrade pip
 
 # Set separate working directory for easier debugging.
