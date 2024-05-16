@@ -3,7 +3,7 @@ import { useMemo } from "react";
 
 export default function App ({...props}) {
     return useMemo(
-        () => <JinjatApp {...props} apiUrl={"https://dbtjinjatintegrationtests-wyn2ibrubq-uc.a.run.app"}/>,
+        () => <JinjatApp {...props} apiUrl={process.env.JINJAT_HOST}/>,
         [props]
       );
 }
