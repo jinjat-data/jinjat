@@ -7,7 +7,7 @@ RUN apt-get update && apt-get -y upgrade \
 WORKDIR /app
 
 RUN pip install 'poetry==1.2.1'
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml ./
 # Install the dependencies first, so that we can cache them.
 RUN poetry install --with test
 
