@@ -18,9 +18,10 @@ export function ExposurePage() {
     }
 
     const spread = typeof dbt == "string" ? [dbt] : (dbt || [])
-    const [_, package_name, version, name, action, id] = spread
+    const [feature, package_name, version, name, action, id] = spread
 
-    const {resource} = useResource(`exposure.${package_name}.${name}`);
+    const {resource} = useResource(`${feature}.${package_name}.${name}`);
+    debugger
     const type = resource?.meta?.type;
     const schemaProvider = useJinjatProvider();
 
@@ -80,12 +81,13 @@ export function ExposurePage() {
             }
 
             if (data.method == 'get') {
+                debugger
                 return <JinjatList title={resource?.meta?.label || spread[1]}
                                    logo={resource?.meta?.jinjat.logo || <div/>} packageName={package_name}
                                    resources={{list: analysis_name}}
                                    enableActions={false}
                                    version={version}
-                                   {...resource?.meta?.jinjat?.refine?.props.get} />
+                                   {...resource?.meta?.jinjat?.refine?.props?.get} />
             } else {
                 return <JinjatCreate title={resource?.meta?.label || spread[1]}
                                      logo={resource?.meta?.jinjat.logo || <div/>} packageName={package_name}
@@ -102,6 +104,7 @@ export function ExposurePage() {
         }
     }
 
+    debugger
     return <div>404</div>;
 }
 
