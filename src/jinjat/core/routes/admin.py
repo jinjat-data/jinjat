@@ -93,8 +93,7 @@ async def execute_sql(
             )]
         )
 
-    # TODO: fix openapi_dict
-    return JinjatExecutionResult.from_dbt(body.request, dbt_result, openapi_dict={})
+    return JinjatExecutionResult.from_dbt(body.request, dbt_result)
 
 
 async def _execute_jinjat_query(project: DbtProject, execute_function, query: str, ctx: DbtQueryRequestContext,

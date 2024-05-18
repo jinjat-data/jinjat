@@ -17,7 +17,7 @@ const withMDX = createMDX({
 module.exports = withMDX({
     output: 'export',
     pageExtensions: ['md', 'mdx', 'js', 'jsx', 'ts', 'tsx'],
-    // transpilePackages: ['@jinjat-data/core'],
+    transpilePackages: ['@jinjat-data/core'],
     webpack: (config) => {
       config.resolve.fallback = { fs: false };
       config.resolve.alias["react"] = path.resolve("./node_modules/react");

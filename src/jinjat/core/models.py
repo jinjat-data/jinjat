@@ -149,7 +149,7 @@ class JinjatExecutionResult(BaseModel):
         adapter_response = JinjatAdapterResponse(message=result.adapter_response._message,
                                                  code=result.adapter_response.code,
                                                  rows_affected=result.adapter_response.rows_affected)
-        if response_schema.get('type') == 'object':
+        if response_schema is not None and response_schema.get('type') == 'object':
             json_columns = [key for (key, value) in response_schema.get('properties', {}).items()
                             if value.get('type') in ['array', 'object']]
         else:

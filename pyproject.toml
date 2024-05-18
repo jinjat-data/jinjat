@@ -39,8 +39,6 @@ jinja2-simple-tags = "^0.4.0"
 jsonref = "^1.1.0"
 jmespath = "^1.0.1"
 feedparser = { version = "^6.0.10", optional = true }
-# Testing duck
-duckcli = { version = "^0.2.1", optional = true }
 dbt-duckdb = { version = "^1.5.0", optional = true }
 pandas = "^1.5.3"
 # Deploy
@@ -57,7 +55,7 @@ pytest-mock = ">=3.6.1"
 viztracer = "^0.15.3"
 
 [tool.poetry.extras]
-duckdb = ["dbt-duckdb", "duckcli"]
+duckdb = ["dbt-duckdb"]
 snowflake = ["dbt-snowflake"]
 deploy = [
 ]

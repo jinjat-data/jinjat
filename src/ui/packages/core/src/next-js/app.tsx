@@ -55,7 +55,7 @@ export type ExtendedNextPage = NextPage & {
     noLayout?: boolean;
 };
 
-type ExtendedAppProps = AppProps & {
+export type ExtendedAppProps = AppProps & {
     Component: ExtendedNextPage;
     apiUrl: string;
 };

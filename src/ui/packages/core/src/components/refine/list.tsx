@@ -82,7 +82,6 @@ export const JinjatList: React.FC<JinjatListProps> = ({
         return objectKeys.find(prop => prop.toLowerCase() == 'id')
     }, [jinjatSchema]);
 
-    debugger
     const allColumns = React.useMemo(() => {
         if (properties == null) {
             return null
